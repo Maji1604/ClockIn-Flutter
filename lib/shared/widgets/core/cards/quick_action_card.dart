@@ -19,7 +19,7 @@ class QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-  return Card(
+    return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
@@ -46,17 +46,17 @@ class QuickActionCard extends StatelessWidget {
                     Text(
                       title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 6),
                       Text(
                         subtitle!,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ],

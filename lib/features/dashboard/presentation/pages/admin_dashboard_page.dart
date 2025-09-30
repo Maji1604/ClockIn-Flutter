@@ -40,7 +40,10 @@ class AdminDashboardPage extends StatelessWidget {
                         selectedIndex: 0,
                         onSelect: (index) {
                           // For now, keep navigation simple; later wire routes
-                          AppLogger.info('Sidebar selected: $index', 'ADMIN_DASH');
+                          AppLogger.info(
+                            'Sidebar selected: $index',
+                            'ADMIN_DASH',
+                          );
                         },
                       ),
                     ),
@@ -53,7 +56,11 @@ class AdminDashboardPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const SizedBox(height: 20),
-                              _buildHeaderWithActions(context, theme, state.user),
+                              _buildHeaderWithActions(
+                                context,
+                                theme,
+                                state.user,
+                              ),
                               const SizedBox(height: 24),
 
                               // KPI row
@@ -142,8 +149,12 @@ class AdminDashboardPage extends StatelessWidget {
                                       subtitle: 'Manual clock-in for employees',
                                       accent: AppColors.primary,
                                       onTap: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Clock In action')),
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Clock In action'),
+                                          ),
                                         );
                                       },
                                     ),
@@ -153,10 +164,15 @@ class AdminDashboardPage extends StatelessWidget {
                                     child: QuickActionCard(
                                       icon: Icons.logout,
                                       title: 'Clock Out',
-                                      subtitle: 'Manual clock-out for employees',
+                                      subtitle:
+                                          'Manual clock-out for employees',
                                       onTap: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Clock Out action')),
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Clock Out action'),
+                                          ),
                                         );
                                       },
                                     ),
@@ -168,8 +184,12 @@ class AdminDashboardPage extends StatelessWidget {
                                       title: 'Add Employee',
                                       subtitle: 'Invite new team members',
                                       onTap: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Add Employee')),
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Add Employee'),
+                                          ),
                                         );
                                       },
                                     ),
@@ -181,8 +201,12 @@ class AdminDashboardPage extends StatelessWidget {
                                       title: 'Approvals',
                                       subtitle: 'Approve leave & timesheets',
                                       onTap: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Approvals')),
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Approvals'),
+                                          ),
                                         );
                                       },
                                     ),
@@ -206,9 +230,7 @@ class AdminDashboardPage extends StatelessWidget {
           }
 
           return const PageScaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         },
       ),
@@ -246,14 +268,18 @@ class AdminDashboardPage extends StatelessWidget {
         Row(
           children: [
             IconButton(
-              onPressed: () => context.read<AuthBloc>().add(const AuthLogoutRequested()),
+              onPressed: () =>
+                  context.read<AuthBloc>().add(const AuthLogoutRequested()),
               icon: const Icon(Icons.logout),
               color: AppColors.textSecondary,
             ),
             const SizedBox(width: 8),
             CircleAvatar(
               backgroundColor: AppColors.primary,
-              child: Text(user.firstName.substring(0, 1).toUpperCase(), style: const TextStyle(color: AppColors.textOnPrimary)),
+              child: Text(
+                user.firstName.substring(0, 1).toUpperCase(),
+                style: const TextStyle(color: AppColors.textOnPrimary),
+              ),
             ),
           ],
         ),

@@ -68,9 +68,7 @@ class EmployeeDashboardPage extends StatelessWidget {
           }
 
           return const PageScaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         },
       ),
@@ -109,11 +107,7 @@ class EmployeeDashboardPage extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.access_time,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
+                Icon(Icons.access_time, color: AppColors.primary, size: 24),
                 const SizedBox(width: 8),
                 Text(
                   'Time Tracking',
@@ -125,7 +119,7 @@ class EmployeeDashboardPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Current Status
             Container(
               padding: const EdgeInsets.all(16),
@@ -155,9 +149,9 @@ class EmployeeDashboardPage extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Clock In/Out Buttons
             Row(
               children: [
@@ -167,7 +161,9 @@ class EmployeeDashboardPage extends StatelessWidget {
                     icon: Icons.play_arrow,
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Clock In feature coming soon')),
+                        const SnackBar(
+                          content: Text('Clock In feature coming soon'),
+                        ),
                       );
                     },
                   ),
@@ -179,7 +175,9 @@ class EmployeeDashboardPage extends StatelessWidget {
                     icon: Icons.stop,
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Clock Out feature coming soon')),
+                        const SnackBar(
+                          content: Text('Clock Out feature coming soon'),
+                        ),
                       );
                     },
                   ),
@@ -252,11 +250,7 @@ class EmployeeDashboardPage extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                 ),
-                Icon(
-                  icon,
-                  size: 20,
-                  color: color,
-                ),
+                Icon(icon, size: 20, color: color),
               ],
             ),
             const SizedBox(height: 8),
@@ -311,7 +305,9 @@ class EmployeeDashboardPage extends StatelessWidget {
                 subtitle: 'Update your information',
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Profile management coming soon')),
+                    const SnackBar(
+                      content: Text('Profile management coming soon'),
+                    ),
                   );
                 },
               ),
@@ -364,11 +360,7 @@ class EmployeeDashboardPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                icon,
-                size: 32,
-                color: AppColors.primary,
-              ),
+              Icon(icon, size: 32, color: AppColors.primary),
               const SizedBox(height: 8),
               Text(
                 title,

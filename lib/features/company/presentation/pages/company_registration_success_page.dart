@@ -105,9 +105,7 @@ class CompanyRegistrationSuccessPage extends StatelessWidget {
                         Expanded(
                           flex: 1,
                           child: Column(
-                            children: [
-                              _buildActionButtons(context),
-                            ],
+                            children: [_buildActionButtons(context)],
                           ),
                         ),
                       ],
