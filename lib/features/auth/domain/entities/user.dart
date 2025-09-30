@@ -1,60 +1,48 @@
 import 'package:equatable/equatable.dart';
 
-/// User entity - core business model
+/// User entity representing authenticated user
 class User extends Equatable {
+  final String id;
+  final String email;
+  final String firstName;
+  final String lastName;
+  final String role;
+  final String? companyId;
+  final String? companySlug;
+  final bool mustChangePassword;
+  final bool isFirstLogin;
+
   const User({
     required this.id,
     required this.email,
     required this.firstName,
     required this.lastName,
-    this.profilePicture,
-    this.role,
-    this.department,
-    this.isActive = true,
+    required this.role,
+    this.companyId,
+    this.companySlug,
+    required this.mustChangePassword,
+    required this.isFirstLogin,
   });
 
-  final String id;
-  final String email;
-  final String firstName;
-  final String lastName;
-  final String? profilePicture;
-  final String? role;
-  final String? department;
-  final bool isActive;
+  /// Check if user is admin
+  bool get isAdmin => role == 'admin' || role == 'super_admin';
 
+  /// Check if user is employee
+  bool get isEmployee => role == 'employee';
+
+  /// Get full name
   String get fullName => '$firstName $lastName';
 
   @override
   List<Object?> get props => [
-    id,
-    email,
-    firstName,
-    lastName,
-    profilePicture,
-    role,
-    department,
-    isActive,
-  ];
-
-  User copyWith({
-    String? id,
-    String? email,
-    String? firstName,
-    String? lastName,
-    String? profilePicture,
-    String? role,
-    String? department,
-    bool? isActive,
-  }) {
-    return User(
-      id: id ?? this.id,
-      email: email ?? this.email,
-      firstName: firstName ?? this.firstName,
-      lastName: lastName ?? this.lastName,
-      profilePicture: profilePicture ?? this.profilePicture,
-      role: role ?? this.role,
-      department: department ?? this.department,
-      isActive: isActive ?? this.isActive,
-    );
-  }
+        id,
+        email,
+        firstName,
+        lastName,
+        role,
+        companyId,
+        companySlug,
+        mustChangePassword,
+        isFirstLogin,
+      ];
 }

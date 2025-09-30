@@ -1,12 +1,11 @@
-// Shared widgets and utilities
-export 'widgets/loading_widget.dart';
-export 'widgets/error_widget.dart';
-export 'widgets/empty_widget.dart';
-export 'widgets/app_buttons.dart';
-export 'widgets/app_text_fields.dart';
-export 'widgets/app_cards.dart';
-export 'widgets/layout_widgets.dart';
-export 'widgets/navigation_widgets.dart';
+// Core Components - Clean & Minimal
+// Buttons
+export 'widgets/core/buttons/primary_button.dart';
+export 'widgets/core/buttons/secondary_button.dart';
 
-// Backward compatibility
-export 'widgets/common_widgets.dart';
+// Forms
+export 'widgets/core/forms/input_field.dart';
+
+// Layout
+export 'widgets/core/layout/page_scaffold.dart';
+export 'widgets/core/layout/content_container.dart';

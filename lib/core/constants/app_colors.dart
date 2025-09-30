@@ -1,181 +1,85 @@
 import 'package:flutter/material.dart';
 
-/// Color constants for the Creoleap HRMS application
-///
-/// This class defines the color palette used throughout the app
-/// following Material Design guidelines and brand colors.
+/// Optimized color system for ClockIn HRMS
+/// Focus: Dark Blue, White, Black for professional, clean design
 class AppColors {
-  // Brand Colors
-  static const Color primary = Color(0xFF2196F3); // Blue
-  static const Color primaryDark = Color(0xFF1976D2);
-  static const Color primaryLight = Color(0xFFBBDEFB);
-  static const Color secondary = Color(0xFF03DAC6); // Teal
-  static const Color secondaryDark = Color(0xFF018786);
-  static const Color secondaryLight = Color(0xFFB2DFDB);
+  // Private constructor
+  AppColors._();
+  // === CORE BRAND COLORS ===
+  // Brand Blue (primary)
+  static const Color primary = Color(0xFF0052CC); // deep brand blue
+  static const Color primaryLight = Color(0xFF2F6FED);
+  static const Color primaryDark = Color(0xFF003A99);
 
-  // Accent Colors
-  static const Color accent = Color(0xFFFF5722); // Deep Orange
-  static const Color accentLight = Color(0xFFFFCCBC);
+  // Accent / Success
+  static const Color accent = Color(0xFF16A34A); // green success accent
+  static const Color accentLight = Color(0xFF86efac);
 
-  // Background Colors
-  static const Color background = Color(0xFFFAFAFA);
-  static const Color backgroundDark = Color(0xFF121212);
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceDark = Color(0xFF1E1E1E);
+  // === NEUTRAL COLORS ===
+  // Pure surfaces
+  static const Color surface = Color(0xFFffffff);
+  static const Color surfaceLight = Color(0xFFf7fafc);
+  static const Color surfaceDark = Color(0xFF1a202c);
 
-  // Text Colors
-  static const Color textPrimary = Color(0xFF212121);
-  static const Color textSecondary = Color(0xFF757575);
-  static const Color textHint = Color(0xFF9E9E9E);
-  static const Color textDisabled = Color(0xFFBDBDBD);
-  static const Color textOnPrimary = Color(0xFFFFFFFF);
-  static const Color textOnSecondary = Color(0xFF000000);
+  // Text hierarchy
+  static const Color textPrimary = Color(0xFF1a202c);
+  static const Color textSecondary = Color(0xFF4a5568);
+  static const Color textTertiary = Color(0xFF718096);
+  static const Color textOnPrimary = Color(0xFFffffff);
 
-  // Status Colors
-  static const Color success = Color(0xFF4CAF50); // Green
-  static const Color successLight = Color(0xFFC8E6C9);
-  static const Color warning = Color(0xFFFF9800); // Orange
-  static const Color warningLight = Color(0xFFFFE0B2);
-  static const Color error = Color(0xFFF44336); // Red
-  static const Color errorLight = Color(0xFFFFCDD2);
-  static const Color info = Color(0xFF2196F3); // Blue
-  static const Color infoLight = Color(0xFFBBDEFB);
+  // === STATUS COLORS ===
+  static const Color success = accent;
+  static const Color successLight = Color(0xFFd1fae5);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color warningLight = Color(0xFFFEF3C7);
+  static const Color error = Color(0xFFEF4444);
+  static const Color errorLight = Color(0xFFFEE2E2);
 
-  // Functional Colors
-  static const Color divider = Color(0xFFE0E0E0);
-  static const Color border = Color(0xFFE0E0E0);
-  static const Color shadow = Color(0x1F000000);
-  static const Color overlay = Color(0x66000000);
+  // === BORDER & DIVIDER ===
+  static const Color border = Color(0xFFe2e8f0);
+  static const Color borderLight = Color(0xFFf1f5f9);
+  static const Color divider = Color(0xFFe2e8f0);
 
-  // HR Specific Colors
-  static const Color attendance = Color(0xFF4CAF50); // Green for present
-  static const Color absent = Color(0xFFF44336); // Red for absent
-  static const Color leave = Color(0xFFFF9800); // Orange for leave
-  static const Color holiday = Color(0xFF9C27B0); // Purple for holidays
-  static const Color overtime = Color(0xFF3F51B5); // Indigo for overtime
+  // === INTERACTIVE STATES ===
+  static const Color hover = Color(0xFFf7fafc);
+  static const Color pressed = Color(0xFFedf2f7);
+  static const Color focus = Color(0xFF63b3ed);
 
-  // Department Colors (for visual categorization)
-  static const Color hr = Color(0xFFE91E63); // Pink
-  static const Color finance = Color(0xFF4CAF50); // Green
-  static const Color it = Color(0xFF2196F3); // Blue
-  static const Color marketing = Color(0xFFFF9800); // Orange
-  static const Color operations = Color(0xFF9C27B0); // Purple
-  static const Color sales = Color(0xFF607D8B); // Blue Grey
+  // === GRADIENTS ===
+  static const List<Color> primaryGradient = [primary, primaryLight];
 
-  // Priority Colors
-  static const Color priorityHigh = Color(0xFFF44336); // Red
-  static const Color priorityMedium = Color(0xFFFF9800); // Orange
-  static const Color priorityLow = Color(0xFF4CAF50); // Green
+  static const List<Color> accentGradient = [accent, accentLight];
 
-  // Gradient Colors
-  static const List<Color> primaryGradient = [
-    Color(0xFF2196F3),
-    Color(0xFF21CBF3),
-  ];
+  static const List<Color> successGradient = [success, successLight];
 
-  static const List<Color> successGradient = [
-    Color(0xFF4CAF50),
-    Color(0xFF8BC34A),
-  ];
+  // === SEMANTIC COLORS ===
+  // For backward compatibility and specific use cases
+  static const Color background = surfaceLight;
+  static const Color backgroundDark = surfaceDark;
+  static const Color textHint = textTertiary;
+  static const Color textDisabled = Color(0xFFa0aec0);
+  static const Color textOnSecondary = textPrimary;
 
-  static const List<Color> warningGradient = [
-    Color(0xFFFF9800),
-    Color(0xFFFFB74D),
-  ];
+  // === UTILITY METHODS ===
 
-  static const List<Color> errorGradient = [
-    Color(0xFFF44336),
-    Color(0xFFE57373),
-  ];
-
-  // Chart Colors (for analytics and reports)
-  static const List<Color> chartColors = [
-    Color(0xFF2196F3), // Blue
-    Color(0xFF4CAF50), // Green
-    Color(0xFFFF9800), // Orange
-    Color(0xFFF44336), // Red
-    Color(0xFF9C27B0), // Purple
-    Color(0xFF607D8B), // Blue Grey
-    Color(0xFF795548), // Brown
-    Color(0xFFE91E63), // Pink
-  ];
-
-  // Transparency Levels
-  static const double opacity10 = 0.1;
-  static const double opacity20 = 0.2;
-  static const double opacity30 = 0.3;
-  static const double opacity40 = 0.4;
-  static const double opacity50 = 0.5;
-  static const double opacity60 = 0.6;
-  static const double opacity70 = 0.7;
-  static const double opacity80 = 0.8;
-  static const double opacity90 = 0.9;
-
-  // Helper Methods
-
-  /// Get color with specified opacity
+  /// Get color with opacity
   static Color withOpacity(Color color, double opacity) {
     return color.withValues(alpha: opacity);
   }
 
-  /// Get status color based on boolean value
-  static Color getStatusColor(bool isPositive) {
-    return isPositive ? success : error;
+  /// Get appropriate text color for background
+  static Color getTextColorForBackground(Color backgroundColor) {
+    final luminance = backgroundColor.computeLuminance();
+    return luminance > 0.5 ? textPrimary : textOnPrimary;
   }
 
-  /// Get priority color based on priority level (1-3, where 1 is highest)
-  static Color getPriorityColor(int priority) {
-    switch (priority) {
-      case 1:
-        return priorityHigh;
-      case 2:
-        return priorityMedium;
-      case 3:
-      default:
-        return priorityLow;
-    }
+  /// Get hover color for any base color
+  static Color getHoverColor(Color baseColor) {
+    return Color.alphaBlend(Colors.black.withValues(alpha: 0.04), baseColor);
   }
 
-  /// Get department color based on department name
-  static Color getDepartmentColor(String department) {
-    switch (department.toLowerCase()) {
-      case 'hr':
-      case 'human resources':
-        return hr;
-      case 'finance':
-      case 'accounting':
-        return finance;
-      case 'it':
-      case 'information technology':
-        return it;
-      case 'marketing':
-        return marketing;
-      case 'operations':
-        return operations;
-      case 'sales':
-        return sales;
-      default:
-        return primary;
-    }
-  }
-
-  /// Get attendance color based on status
-  static Color getAttendanceColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'present':
-      case 'on time':
-        return attendance;
-      case 'absent':
-        return absent;
-      case 'leave':
-      case 'on leave':
-        return leave;
-      case 'holiday':
-        return holiday;
-      case 'overtime':
-        return overtime;
-      default:
-        return textSecondary;
-    }
+  /// Get pressed color for any base color
+  static Color getPressedColor(Color baseColor) {
+    return Color.alphaBlend(Colors.black.withValues(alpha: 0.08), baseColor);
   }
 }

@@ -1,7 +1,8 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/user.dart';
+import '../../domain/entities/company_membership.dart';
 
-/// Base class for all authentication states
+/// Authentication states
 abstract class AuthState extends Equatable {
   const AuthState();
 
@@ -9,73 +10,56 @@ abstract class AuthState extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Initial state when auth status is unknown
-class AuthInitial extends AuthState {}
-
-/// State when authentication check is in progress
-class AuthLoading extends AuthState {}
-
-/// State when user is authenticated
-class AuthAuthenticated extends AuthState {
-  const AuthAuthenticated({required this.user});
-
-  final User user;
-
-  @override
-  List<Object?> get props => [user];
+/// Initial state
+class AuthInitial extends AuthState {
+  const AuthInitial();
 }
 
-/// State when user is not authenticated
-class AuthUnauthenticated extends AuthState {}
+/// Loading state
+class AuthLoading extends AuthState {
+  const AuthLoading();
+}
 
-/// State when authentication operation fails
-class AuthFailure extends AuthState {
-  const AuthFailure({
-    required this.message,
-    this.code,
+/// Authenticated state
+class AuthAuthenticated extends AuthState {
+  final User user;
+  final bool requiresPasswordChange;
+
+  const AuthAuthenticated({
+    required this.user,
+    required this.requiresPasswordChange,
   });
 
+  @override
+  List<Object?> get props => [user, requiresPasswordChange];
+}
+
+/// Unauthenticated state
+class AuthUnauthenticated extends AuthState {
+  const AuthUnauthenticated();
+}
+
+/// Password change success state
+class AuthPasswordChangeSuccess extends AuthState {
+  const AuthPasswordChangeSuccess();
+}
+
+/// Error state
+class AuthError extends AuthState {
   final String message;
-  final String? code;
+
+  const AuthError({required this.message});
 
   @override
-  List<Object?> get props => [message, code];
+  List<Object?> get props => [message];
 }
 
-/// State when login is in progress
-class AuthLoginLoading extends AuthState {}
+/// State representing that the user must pick a company membership
+class AuthRequiresCompanySelection extends AuthState {
+  final List<CompanyMembership> memberships;
 
-/// State when login is successful
-class AuthLoginSuccess extends AuthState {
-  const AuthLoginSuccess({required this.user});
-
-  final User user;
+  const AuthRequiresCompanySelection({required this.memberships});
 
   @override
-  List<Object?> get props => [user];
+  List<Object?> get props => [memberships];
 }
-
-/// State when registration is in progress
-class AuthRegisterLoading extends AuthState {}
-
-/// State when registration is successful
-class AuthRegisterSuccess extends AuthState {
-  const AuthRegisterSuccess({required this.user});
-
-  final User user;
-
-  @override
-  List<Object?> get props => [user];
-}
-
-/// State when password reset is in progress
-class AuthPasswordResetLoading extends AuthState {}
-
-/// State when password reset is successful
-class AuthPasswordResetSuccess extends AuthState {}
-
-/// State when password change is in progress
-class AuthPasswordChangeLoading extends AuthState {}
-
-/// State when password change is successful
-class AuthPasswordChangeSuccess extends AuthState {}

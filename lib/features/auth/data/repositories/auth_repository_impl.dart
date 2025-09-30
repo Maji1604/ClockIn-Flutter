@@ -1,146 +1,226 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
-import '../../../../core/errors/exceptions.dart';
+
+import '../../../../core/core.dart';
+import '../../domain/entities/login_request.dart';
+import '../../domain/entities/login_response.dart';
+import '../../domain/entities/password_change_request.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
-import '../datasources/auth_local_data_source.dart';
-import '../datasources/auth_remote_data_source.dart';
+import '../datasources/auth_local_datasource.dart';
+import '../datasources/auth_remote_datasource.dart';
+import '../models/login_request_model.dart';
+import '../models/password_change_request_model.dart';
+import '../models/user_model.dart';
 
-/// Implementation of AuthRepository
+/// Implementation of authentication repository
 class AuthRepositoryImpl implements AuthRepository {
+  final AuthRemoteDataSource remoteDataSource;
+  final AuthLocalDataSource localDataSource;
+
   const AuthRepositoryImpl({
     required this.remoteDataSource,
     required this.localDataSource,
   });
 
-  final AuthRemoteDataSource remoteDataSource;
-  final AuthLocalDataSource localDataSource;
-
   @override
-  Future<Either<Failure, User>> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<Either<Failure, LoginResponse>> login(LoginRequest request) async {
     try {
-      final user = await remoteDataSource.login(
-        email: email,
-        password: password,
-      );
-      // Cache user data locally
-      // await localDataSource.cacheUser(UserModel.fromEntity(user));
-      return Right(user);
+      AppLogger.info('Starting login process', 'AUTH_REPO');
+
+      final requestModel = LoginRequestModel.fromEntity(request);
+      final response = await remoteDataSource.login(requestModel);
+
+      AppLogger.info('Login completed successfully', 'AUTH_REPO');
+      return Right(response.toEntity());
     } on ServerException catch (e) {
+      // Include server response (if any) in logs to aid debugging (403 payloads, errors)
+      AppLogger.error(
+        'Server error during login: ${e.message} (status: ${e.statusCode})',
+        'AUTH_REPO',
+      );
+      // Surface message with status code for callers. Remote datasource should
+      // include response body in the exception.message when available.
+      final composedMessage =
+          '${e.message}${e.statusCode != null ? ' (status: ${e.statusCode})' : ''}';
       return Left(
-        ServerFailure(message: e.message, code: e.statusCode?.toString()),
+        ServerFailure(message: composedMessage, statusCode: e.statusCode),
       );
     } on NetworkException catch (e) {
+      AppLogger.error('Network error during login', 'AUTH_REPO');
       return Left(NetworkFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: 'An unexpected error occurred'));
+      AppLogger.error('Unexpected error during login: $e', 'AUTH_REPO', e);
+      return Left(ServerFailure(message: 'Unexpected error during login'));
     }
   }
 
   @override
-  Future<Either<Failure, User>> register({
-    required String email,
-    required String password,
-    required String firstName,
-    required String lastName,
-  }) async {
+  Future<Either<Failure, void>> changePassword(
+    String userId,
+    PasswordChangeRequest request,
+  ) async {
     try {
-      final user = await remoteDataSource.register(
-        email: email,
-        password: password,
-        firstName: firstName,
-        lastName: lastName,
-      );
-      return Right(user);
+      AppLogger.info('Starting password change process', 'AUTH_REPO');
+
+      final requestModel = PasswordChangeRequestModel.fromEntity(request);
+      await remoteDataSource.changePassword(userId, requestModel);
+
+      AppLogger.info('Password change completed successfully', 'AUTH_REPO');
+      return const Right(null);
     } on ServerException catch (e) {
-      return Left(
-        ServerFailure(message: e.message, code: e.statusCode?.toString()),
-      );
+      AppLogger.error('Server error during password change', 'AUTH_REPO');
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
     } on NetworkException catch (e) {
+      AppLogger.error('Network error during password change', 'AUTH_REPO');
       return Left(NetworkFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: 'An unexpected error occurred'));
+      AppLogger.error(
+        'Unexpected error during password change: $e',
+        'AUTH_REPO',
+        e,
+      );
+      return Left(
+        ServerFailure(message: 'Unexpected error during password change'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, User>> getCurrentUser() async {
+    try {
+      AppLogger.debug('Getting current user', 'AUTH_REPO');
+
+      // Try to get from local storage first
+      final localUser = await localDataSource.getStoredUser();
+      if (localUser != null) {
+        AppLogger.debug('User found in local storage', 'AUTH_REPO');
+        return Right(localUser.toEntity());
+      }
+
+      // If not in local storage, get from remote
+      final remoteUser = await remoteDataSource.getCurrentUser();
+
+      // Store in local storage for future use
+      await localDataSource.storeUser(remoteUser);
+
+      AppLogger.debug(
+        'User retrieved from remote and stored locally',
+        'AUTH_REPO',
+      );
+      return Right(remoteUser.toEntity());
+    } on ServerException catch (e) {
+      AppLogger.error('Server error getting current user', 'AUTH_REPO');
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } on NetworkException catch (e) {
+      AppLogger.error('Network error getting current user', 'AUTH_REPO');
+      return Left(NetworkFailure(message: e.message));
+    } on CacheException catch (e) {
+      AppLogger.error('Cache error getting current user', 'AUTH_REPO');
+      return Left(CacheFailure(message: e.message));
+    } catch (e) {
+      AppLogger.error(
+        'Unexpected error getting current user: $e',
+        'AUTH_REPO',
+        e,
+      );
+      return Left(
+        ServerFailure(message: 'Unexpected error getting current user'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, void>> logout() async {
     try {
-      await localDataSource.clearCache();
+      AppLogger.info('Starting logout process', 'AUTH_REPO');
+
+      // Try to logout from remote (best effort)
+      try {
+        await remoteDataSource.logout();
+      } catch (e) {
+        AppLogger.warning(
+          'Remote logout failed, continuing with local cleanup: $e',
+          'AUTH_REPO',
+        );
+      }
+
+      // Always clear local data
+      await localDataSource.clearStoredData();
+
+      AppLogger.info('Logout completed successfully', 'AUTH_REPO');
       return const Right(null);
     } on CacheException catch (e) {
+      AppLogger.error('Cache error during logout', 'AUTH_REPO');
       return Left(CacheFailure(message: e.message));
     } catch (e) {
-      return Left(CacheFailure(message: 'Failed to logout'));
-    }
-  }
-
-  @override
-  Future<Either<Failure, User?>> getCurrentUser() async {
-    try {
-      final user = await localDataSource.getCachedUser();
-      return Right(user?.toEntity());
-    } on CacheException catch (e) {
-      return Left(CacheFailure(message: e.message));
-    } catch (e) {
-      return Left(CacheFailure(message: 'Failed to get current user'));
-    }
-  }
-
-  @override
-  Future<Either<Failure, String>> refreshToken() async {
-    try {
-      final token = await remoteDataSource.refreshToken();
-      await localDataSource.cacheToken(token);
-      return Right(token);
-    } on ServerException catch (e) {
-      return Left(
-        ServerFailure(message: e.message, code: e.statusCode?.toString()),
-      );
-    } catch (e) {
-      return Left(ServerFailure(message: 'Failed to refresh token'));
+      AppLogger.error('Unexpected error during logout: $e', 'AUTH_REPO', e);
+      return Left(ServerFailure(message: 'Unexpected error during logout'));
     }
   }
 
   @override
   Future<bool> isAuthenticated() async {
-    return await localDataSource.isAuthenticated();
-  }
-
-  @override
-  Future<Either<Failure, void>> resetPassword({required String email}) async {
     try {
-      await remoteDataSource.resetPassword(email: email);
-      return const Right(null);
-    } on ServerException catch (e) {
-      return Left(
-        ServerFailure(message: e.message, code: e.statusCode?.toString()),
-      );
+      return await localDataSource.isAuthenticated();
     } catch (e) {
-      return Left(ServerFailure(message: 'Failed to reset password'));
+      AppLogger.error(
+        'Error checking authentication status: $e',
+        'AUTH_REPO',
+        e,
+      );
+      return false;
     }
   }
 
   @override
-  Future<Either<Failure, void>> changePassword({
-    required String oldPassword,
-    required String newPassword,
-  }) async {
+  Future<String?> getToken() async {
     try {
-      await remoteDataSource.changePassword(
-        oldPassword: oldPassword,
-        newPassword: newPassword,
-      );
-      return const Right(null);
-    } on ServerException catch (e) {
-      return Left(
-        ServerFailure(message: e.message, code: e.statusCode?.toString()),
-      );
+      return await localDataSource.getToken();
     } catch (e) {
-      return Left(ServerFailure(message: 'Failed to change password'));
+      AppLogger.error('Error getting token: $e', 'AUTH_REPO', e);
+      return null;
+    }
+  }
+
+  @override
+  Future<void> storeToken(String token) async {
+    try {
+      await localDataSource.storeToken(token);
+    } catch (e) {
+      AppLogger.error('Error storing token: $e', 'AUTH_REPO', e);
+      throw CacheException(message: 'Failed to store token');
+    }
+  }
+
+  @override
+  Future<void> clearStoredData() async {
+    try {
+      await localDataSource.clearStoredData();
+    } catch (e) {
+      AppLogger.error('Error clearing stored data: $e', 'AUTH_REPO', e);
+      throw CacheException(message: 'Failed to clear stored data');
+    }
+  }
+
+  @override
+  Future<void> storeUser(User user) async {
+    try {
+      final userModel = UserModel.fromEntity(user);
+      await localDataSource.storeUser(userModel);
+    } catch (e) {
+      AppLogger.error('Error storing user: $e', 'AUTH_REPO', e);
+      throw CacheException(message: 'Failed to store user');
+    }
+  }
+
+  @override
+  Future<User?> getStoredUser() async {
+    try {
+      final userModel = await localDataSource.getStoredUser();
+      return userModel?.toEntity();
+    } catch (e) {
+      AppLogger.error('Error getting stored user: $e', 'AUTH_REPO', e);
+      return null;
     }
   }
 }

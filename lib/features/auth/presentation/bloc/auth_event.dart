@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
+import '../../domain/entities/login_request.dart';
+import '../../domain/entities/password_change_request.dart';
 
-/// Base class for all authentication events
+/// Authentication events
 abstract class AuthEvent extends Equatable {
   const AuthEvent();
 
@@ -8,64 +10,41 @@ abstract class AuthEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Event to check if user is already authenticated
-class AuthCheckRequested extends AuthEvent {}
+/// Check authentication status
+class AuthCheckRequested extends AuthEvent {
+  const AuthCheckRequested();
+}
 
-/// Event for user login
+/// Login requested
 class AuthLoginRequested extends AuthEvent {
-  const AuthLoginRequested({required this.email, required this.password});
+  final LoginRequest request;
 
-  final String email;
-  final String password;
-
-  @override
-  List<Object?> get props => [email, password];
-}
-
-/// Event for user registration
-class AuthRegisterRequested extends AuthEvent {
-  const AuthRegisterRequested({
-    required this.email,
-    required this.password,
-    required this.firstName,
-    required this.lastName,
-  });
-
-  final String email;
-  final String password;
-  final String firstName;
-  final String lastName;
+  const AuthLoginRequested({required this.request});
 
   @override
-  List<Object?> get props => [email, password, firstName, lastName];
+  List<Object?> get props => [request];
 }
 
-/// Event for user logout
-class AuthLogoutRequested extends AuthEvent {}
-
-/// Event for password reset
-class AuthPasswordResetRequested extends AuthEvent {
-  const AuthPasswordResetRequested({required this.email});
-
-  final String email;
-
-  @override
-  List<Object?> get props => [email];
-}
-
-/// Event for password change
+/// Password change requested
 class AuthPasswordChangeRequested extends AuthEvent {
+  final String userId;
+  final PasswordChangeRequest request;
+
   const AuthPasswordChangeRequested({
-    required this.oldPassword,
-    required this.newPassword,
+    required this.userId,
+    required this.request,
   });
 
-  final String oldPassword;
-  final String newPassword;
-
   @override
-  List<Object?> get props => [oldPassword, newPassword];
+  List<Object?> get props => [userId, request];
 }
 
-/// Event for token refresh
-class AuthTokenRefreshRequested extends AuthEvent {}
+/// Logout requested
+class AuthLogoutRequested extends AuthEvent {
+  const AuthLogoutRequested();
+}
+
+/// Get current user requested
+class AuthGetCurrentUserRequested extends AuthEvent {
+  const AuthGetCurrentUserRequested();
+}

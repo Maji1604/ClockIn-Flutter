@@ -1,44 +1,42 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
+import '../../../../core/core.dart';
+import '../entities/login_request.dart';
+import '../entities/login_response.dart';
+import '../entities/password_change_request.dart';
 import '../entities/user.dart';
 
-/// Authentication repository contract
-/// Defines the interface for authentication operations
+/// Authentication repository interface
 abstract class AuthRepository {
-  /// Login with email and password
-  Future<Either<Failure, User>> login({
-    required String email,
-    required String password,
-  });
+  /// Login user
+  Future<Either<Failure, LoginResponse>> login(LoginRequest request);
 
-  /// Register a new user
-  Future<Either<Failure, User>> register({
-    required String email,
-    required String password,
-    required String firstName,
-    required String lastName,
-  });
+  /// Change password
+  Future<Either<Failure, void>> changePassword(
+    String userId,
+    PasswordChangeRequest request,
+  );
 
-  /// Logout current user
+  /// Get current user
+  Future<Either<Failure, User>> getCurrentUser();
+
+  /// Logout user
   Future<Either<Failure, void>> logout();
-
-  /// Get current user from cache
-  Future<Either<Failure, User?>> getCurrentUser();
-
-  /// Refresh authentication token
-  Future<Either<Failure, String>> refreshToken();
 
   /// Check if user is authenticated
   Future<bool> isAuthenticated();
 
-  /// Reset password
-  Future<Either<Failure, void>> resetPassword({
-    required String email,
-  });
+  /// Get stored token
+  Future<String?> getToken();
 
-  /// Change password
-  Future<Either<Failure, void>> changePassword({
-    required String oldPassword,
-    required String newPassword,
-  });
+  /// Store token
+  Future<void> storeToken(String token);
+
+  /// Clear stored data
+  Future<void> clearStoredData();
+
+  /// Store user data
+  Future<void> storeUser(User user);
+
+  /// Get stored user
+  Future<User?> getStoredUser();
 }

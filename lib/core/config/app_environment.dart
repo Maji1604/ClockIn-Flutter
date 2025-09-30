@@ -27,51 +27,58 @@ class AppEnvironment {
   // APPLICATION CONFIGURATION
   // ==============================================
 
-  static String get appName => dotenv.env['APP_NAME'] ?? 'Creoleap HRMS';
-  static String get appVersion => dotenv.env['APP_VERSION'] ?? '1.0.0';
-  static String get appEnvironment =>
-      dotenv.env['APP_ENVIRONMENT'] ?? 'development';
-  static bool get isDebug => dotenv.env['APP_DEBUG']?.toLowerCase() == 'true';
+  static String get appName => _getEnvVar('APP_NAME', 'Creoleap HRMS');
+  static String get appVersion => _getEnvVar('APP_VERSION', '1.0.0');
+  static String get appEnvironment => _getEnvVar('APP_ENVIRONMENT', 'development');
+  static bool get isDebug => _getEnvVar('APP_DEBUG', 'false').toLowerCase() == 'true';
+
+  /// Helper method to safely get environment variables
+  static String _getEnvVar(String key, String defaultValue) {
+    try {
+      if (!dotenv.isInitialized) return defaultValue;
+      return dotenv.env[key] ?? defaultValue;
+    } catch (e) {
+      return defaultValue;
+    }
+  }
 
   // ==============================================
   // API CONFIGURATION
   // ==============================================
 
-  static String get apiBaseUrl =>
-      dotenv.env['API_BASE_URL'] ?? 'https://api.example.com/v1';
-  static String get apiVersion => dotenv.env['API_VERSION'] ?? 'v1';
-  static int get apiTimeout =>
-      int.tryParse(dotenv.env['API_TIMEOUT'] ?? '') ?? 30000;
-  static String get apiKey => dotenv.env['API_KEY'] ?? '';
+  static String get apiBaseUrl => _getEnvVar('API_BASE_URL', 'https://api.example.com/v1');
+  static String get apiVersion => _getEnvVar('API_VERSION', 'v1');
+  static int get apiTimeout => int.tryParse(_getEnvVar('API_TIMEOUT', '30000')) ?? 30000;
+  static String get apiKey => _getEnvVar('API_KEY', '');
   static int get connectTimeout =>
-      int.tryParse(dotenv.env['CONNECT_TIMEOUT'] ?? '') ?? 30000;
+      int.tryParse(_getEnvVar('CONNECT_TIMEOUT', '30000')) ?? 30000;
   static int get receiveTimeout =>
-      int.tryParse(dotenv.env['RECEIVE_TIMEOUT'] ?? '') ?? 30000;
+      int.tryParse(_getEnvVar('RECEIVE_TIMEOUT', '30000')) ?? 30000;
 
   // ==============================================
   // AUTHENTICATION & SECURITY
   // ==============================================
 
-  static String get jwtSecretKey => dotenv.env['JWT_SECRET_KEY'] ?? '';
-  static String get jwtRefreshSecret => dotenv.env['JWT_REFRESH_SECRET'] ?? '';
+  static String get jwtSecretKey => _getEnvVar('JWT_SECRET_KEY', '');
+  static String get jwtRefreshSecret => _getEnvVar('JWT_REFRESH_SECRET', '');
   static int get jwtExpiryHours =>
-      int.tryParse(dotenv.env['JWT_EXPIRY_HOURS'] ?? '') ?? 24;
+      int.tryParse(_getEnvVar('JWT_EXPIRY_HOURS', '24')) ?? 24;
   static int get refreshTokenExpiryDays =>
-      int.tryParse(dotenv.env['REFRESH_TOKEN_EXPIRY_DAYS'] ?? '') ?? 30;
-  static String get encryptionKey => dotenv.env['ENCRYPTION_KEY'] ?? '';
+      int.tryParse(_getEnvVar('REFRESH_TOKEN_EXPIRY_DAYS', '30')) ?? 30;
+  static String get encryptionKey => _getEnvVar('ENCRYPTION_KEY', '');
   static int get saltRounds =>
-      int.tryParse(dotenv.env['SALT_ROUNDS'] ?? '') ?? 12;
+      int.tryParse(_getEnvVar('SALT_ROUNDS', '12')) ?? 12;
 
   // ==============================================
   // DATABASE CONFIGURATION
   // ==============================================
 
-  static String get dbHost => dotenv.env['DB_HOST'] ?? 'localhost';
-  static int get dbPort => int.tryParse(dotenv.env['DB_PORT'] ?? '') ?? 5432;
-  static String get dbName => dotenv.env['DB_NAME'] ?? '';
-  static String get dbUsername => dotenv.env['DB_USERNAME'] ?? '';
-  static String get dbPassword => dotenv.env['DB_PASSWORD'] ?? '';
-  static bool get dbSsl => dotenv.env['DB_SSL']?.toLowerCase() == 'true';
+  static String get dbHost => _getEnvVar('DB_HOST', 'localhost');
+  static int get dbPort => int.tryParse(_getEnvVar('DB_PORT', '5432')) ?? 5432;
+  static String get dbName => _getEnvVar('DB_NAME', '');
+  static String get dbUsername => _getEnvVar('DB_USERNAME', '');
+  static String get dbPassword => _getEnvVar('DB_PASSWORD', '');
+  static bool get dbSsl => _getEnvVar('DB_SSL', 'false').toLowerCase() == 'true';
 
   // ==============================================
   // THIRD-PARTY SERVICES
@@ -79,42 +86,42 @@ class AppEnvironment {
 
   // Email Service
   static String get emailServiceApiKey =>
-      dotenv.env['EMAIL_SERVICE_API_KEY'] ?? '';
-  static String get emailFromAddress => dotenv.env['EMAIL_FROM_ADDRESS'] ?? '';
-  static String get emailFromName => dotenv.env['EMAIL_FROM_NAME'] ?? '';
+      _getEnvVar('EMAIL_SERVICE_API_KEY', '');
+  static String get emailFromAddress => _getEnvVar('EMAIL_FROM_ADDRESS', '');
+  static String get emailFromName => _getEnvVar('EMAIL_FROM_NAME', '');
 
   // SMS Service
-  static String get smsServiceSid => dotenv.env['SMS_SERVICE_SID'] ?? '';
-  static String get smsAuthToken => dotenv.env['SMS_AUTH_TOKEN'] ?? '';
-  static String get smsPhoneNumber => dotenv.env['SMS_PHONE_NUMBER'] ?? '';
+  static String get smsServiceSid => _getEnvVar('SMS_SERVICE_SID', '');
+  static String get smsAuthToken => _getEnvVar('SMS_AUTH_TOKEN', '');
+  static String get smsPhoneNumber => _getEnvVar('SMS_PHONE_NUMBER', '');
 
   // File Storage
   static String get storageServiceKey =>
-      dotenv.env['STORAGE_SERVICE_KEY'] ?? '';
+      _getEnvVar('STORAGE_SERVICE_KEY', '');
   static String get storageBucketName =>
-      dotenv.env['STORAGE_BUCKET_NAME'] ?? '';
-  static String get storageRegion => dotenv.env['STORAGE_REGION'] ?? '';
+      _getEnvVar('STORAGE_BUCKET_NAME', '');
+  static String get storageRegion => _getEnvVar('STORAGE_REGION', '');
 
   // Push Notifications
   static String get firebaseServerKey =>
-      dotenv.env['FIREBASE_SERVER_KEY'] ?? '';
+      _getEnvVar('FIREBASE_SERVER_KEY', '');
   static String get firebaseProjectId =>
-      dotenv.env['FIREBASE_PROJECT_ID'] ?? '';
+      _getEnvVar('FIREBASE_PROJECT_ID', '');
 
   // ==============================================
   // OAUTH & SOCIAL LOGIN
   // ==============================================
 
   // Google OAuth
-  static String get googleClientId => dotenv.env['GOOGLE_CLIENT_ID'] ?? '';
+  static String get googleClientId => _getEnvVar('GOOGLE_CLIENT_ID', '');
   static String get googleClientSecret =>
-      dotenv.env['GOOGLE_CLIENT_SECRET'] ?? '';
+      _getEnvVar('GOOGLE_CLIENT_SECRET', '');
 
   // Microsoft OAuth
   static String get microsoftClientId =>
-      dotenv.env['MICROSOFT_CLIENT_ID'] ?? '';
+      _getEnvVar('MICROSOFT_CLIENT_ID', '');
   static String get microsoftClientSecret =>
-      dotenv.env['MICROSOFT_CLIENT_SECRET'] ?? '';
+      _getEnvVar('MICROSOFT_CLIENT_SECRET', '');
 
   // ==============================================
   // PAYMENT CONFIGURATION
@@ -122,44 +129,44 @@ class AppEnvironment {
 
   // Stripe
   static String get stripePublishableKey =>
-      dotenv.env['STRIPE_PUBLISHABLE_KEY'] ?? '';
-  static String get stripeSecretKey => dotenv.env['STRIPE_SECRET_KEY'] ?? '';
+      _getEnvVar('STRIPE_PUBLISHABLE_KEY', '');
+  static String get stripeSecretKey => _getEnvVar('STRIPE_SECRET_KEY', '');
 
   // PayPal
-  static String get paypalClientId => dotenv.env['PAYPAL_CLIENT_ID'] ?? '';
+  static String get paypalClientId => _getEnvVar('PAYPAL_CLIENT_ID', '');
   static String get paypalClientSecret =>
-      dotenv.env['PAYPAL_CLIENT_SECRET'] ?? '';
-  static String get paypalMode => dotenv.env['PAYPAL_MODE'] ?? 'sandbox';
+      _getEnvVar('PAYPAL_CLIENT_SECRET', '');
+  static String get paypalMode => _getEnvVar('PAYPAL_MODE', 'sandbox');
 
   // ==============================================
   // EXTERNAL INTEGRATIONS
   // ==============================================
 
   static String get timeTrackingApiKey =>
-      dotenv.env['TIME_TRACKING_API_KEY'] ?? '';
-  static String get biometricApiKey => dotenv.env['BIOMETRIC_API_KEY'] ?? '';
-  static String get biometricApiUrl => dotenv.env['BIOMETRIC_API_URL'] ?? '';
-  static String get analyticsApiKey => dotenv.env['ANALYTICS_API_KEY'] ?? '';
+      _getEnvVar('TIME_TRACKING_API_KEY', '');
+  static String get biometricApiKey => _getEnvVar('BIOMETRIC_API_KEY', '');
+  static String get biometricApiUrl => _getEnvVar('BIOMETRIC_API_URL', '');
+  static String get analyticsApiKey => _getEnvVar('ANALYTICS_API_KEY', '');
 
   // ==============================================
   // FEATURE FLAGS
   // ==============================================
 
   static bool get enableBiometricAuth =>
-      dotenv.env['ENABLE_BIOMETRIC_AUTH']?.toLowerCase() == 'true';
+      _getEnvVar('ENABLE_BIOMETRIC_AUTH', 'false').toLowerCase() == 'true';
   static bool get enableFacialRecognition =>
-      dotenv.env['ENABLE_FACIAL_RECOGNITION']?.toLowerCase() == 'true';
+      _getEnvVar('ENABLE_FACIAL_RECOGNITION', 'false').toLowerCase() == 'true';
   static bool get enableGeolocationTracking =>
-      dotenv.env['ENABLE_GEOLOCATION_TRACKING']?.toLowerCase() == 'true';
+      _getEnvVar('ENABLE_GEOLOCATION_TRACKING', 'false').toLowerCase() == 'true';
   static bool get enableOfflineMode =>
-      dotenv.env['ENABLE_OFFLINE_MODE']?.toLowerCase() == 'true';
+      _getEnvVar('ENABLE_OFFLINE_MODE', 'false').toLowerCase() == 'true';
 
   // ==============================================
   // TESTING
   // ==============================================
 
-  static String get testUserEmail => dotenv.env['TEST_USER_EMAIL'] ?? '';
-  static String get testUserPassword => dotenv.env['TEST_USER_PASSWORD'] ?? '';
+  static String get testUserEmail => _getEnvVar('TEST_USER_EMAIL', '');
+  static String get testUserPassword => _getEnvVar('TEST_USER_PASSWORD', '');
 
   // ==============================================
   // UTILITY METHODS
@@ -176,25 +183,33 @@ class AppEnvironment {
   static bool get isStaging => appEnvironment.toLowerCase() == 'staging';
 
   /// Get a custom environment variable
-  static String? getCustomVar(String key) => dotenv.env[key];
+  static String? getCustomVar(String key) => _getEnvVar(key, '');
 
   /// Get a custom environment variable with default value
   static String getCustomVarOrDefault(String key, String defaultValue) =>
-      dotenv.env[key] ?? defaultValue;
+      _getEnvVar(key, defaultValue);
 
   /// Print all loaded environment variables (for debugging)
   /// Only use this in development mode
   static void printEnvironmentVariables() {
     if (isDebug && isDevelopment) {
       AppLogger.debug('=== LOADED ENVIRONMENT VARIABLES ===', 'ENVIRONMENT');
-      dotenv.env.forEach((key, value) {
-        // Hide sensitive values in logs
-        if (_isSensitiveKey(key)) {
-          AppLogger.debug('$key: ***HIDDEN***', 'ENVIRONMENT');
+      try {
+        if (dotenv.isInitialized) {
+          dotenv.env.forEach((key, value) {
+            // Hide sensitive values in logs
+            if (_isSensitiveKey(key)) {
+              AppLogger.debug('$key: ***HIDDEN***', 'ENVIRONMENT');
+            } else {
+              AppLogger.debug('$key: $value', 'ENVIRONMENT');
+            }
+          });
         } else {
-          AppLogger.debug('$key: $value', 'ENVIRONMENT');
+          AppLogger.debug('Dotenv not initialized - using default values', 'ENVIRONMENT');
         }
-      });
+      } catch (e) {
+        AppLogger.debug('Error reading environment variables: $e', 'ENVIRONMENT');
+      }
       AppLogger.debug('====================================', 'ENVIRONMENT');
     }
   }

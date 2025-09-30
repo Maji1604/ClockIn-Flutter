@@ -13,10 +13,16 @@ abstract class Failure extends Equatable {
 
 /// Server failure - when API calls fail
 class ServerFailure extends Failure {
+  final int? statusCode;
+  
   const ServerFailure({
     required super.message,
     super.code,
+    this.statusCode,
   });
+  
+  @override
+  List<Object?> get props => [message, code, statusCode];
 }
 
 /// Cache failure - when local storage operations fail
