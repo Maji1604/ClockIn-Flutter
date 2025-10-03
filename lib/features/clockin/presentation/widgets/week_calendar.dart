@@ -15,19 +15,22 @@ class WeekCalendar extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(7, (i) {
+    return SizedBox(
+      height: 74,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (context, i) {
           final date = startOfWeek.add(Duration(days: i));
-            final selected = _isSameDay(date, selectedDate);
-            return _DayChip(
-              date: date,
-              isSelected: selected,
-              onTap: () => onDateSelected?.call(date),
-            );
-        }),
+          final selected = _isSameDay(date, selectedDate);
+          return _DayChip(
+            date: date,
+            isSelected: selected,
+            onTap: () => onDateSelected?.call(date),
+          );
+        },
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemCount: 7,
       ),
     );
   }

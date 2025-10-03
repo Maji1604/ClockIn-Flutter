@@ -20,7 +20,7 @@ class BottomNavigation extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildNavItem(Icons.home, 0),
-          _buildNavItem(Icons.calendar_today, 1),
+          _buildNavItem(Icons.history, 1),
           _buildFloatingButton(),
           _buildNavItem(Icons.assessment, 2),
           _buildNavItem(Icons.person, 3),
@@ -66,7 +66,7 @@ class BottomNavigation extends StatelessWidget {
         ],
       ),
       child: const Icon(
-        Icons.qr_code_scanner,
+        Icons.group,
         color: AppColors.textOnPrimary,
         size: 24,
       ),
