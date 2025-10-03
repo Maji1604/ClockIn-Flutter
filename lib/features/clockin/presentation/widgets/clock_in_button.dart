@@ -105,10 +105,7 @@ class _ClockInButtonState extends State<ClockInButton>
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isClockedIn
-                ? [
-                    Colors.redAccent.shade200,
-                    Colors.red.shade400,
-                  ]
+                ? [Colors.redAccent.shade200, Colors.red.shade400]
                 : [
                     AppColors.primary.withValues(alpha: 0.95),
                     AppColors.primary,
@@ -120,7 +117,8 @@ class _ClockInButtonState extends State<ClockInButton>
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final usableWidth = constraints.maxWidth -
+            final usableWidth =
+                constraints.maxWidth -
                 (widget.horizontalInset * 2) -
                 widget.thumbSize;
             final dx = widget.horizontalInset + _dragPosition * usableWidth;
@@ -156,13 +154,14 @@ class _ClockInButtonState extends State<ClockInButton>
                 Positioned.fill(
                   child: IgnorePointer(
                     child: ClipRRect(
-                      borderRadius:
-                          BorderRadius.circular(widget.borderRadius),
+                      borderRadius: BorderRadius.circular(widget.borderRadius),
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: FractionallySizedBox(
-                          widthFactor: (0.12 + _dragPosition * 0.88)
-                              .clamp(0.12, 1.0),
+                          widthFactor: (0.12 + _dragPosition * 0.88).clamp(
+                            0.12,
+                            1.0,
+                          ),
                           child: Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
@@ -189,9 +188,9 @@ class _ClockInButtonState extends State<ClockInButton>
                         setState(() => _isDragging = true),
                     onHorizontalDragUpdate: (details) {
                       setState(() {
-                        _dragPosition = (_dragPosition +
-                                details.delta.dx / usableWidth)
-                            .clamp(0.0, 1.0);
+                        _dragPosition =
+                            (_dragPosition + details.delta.dx / usableWidth)
+                                .clamp(0.0, 1.0);
                       });
                     },
                     onHorizontalDragEnd: (_) {
@@ -297,12 +296,14 @@ class _BreakButton extends StatelessWidget {
           child: Text(
             label,
             textAlign: TextAlign.center,
-            style: textStyle ?? theme.textTheme.labelMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              height: 1.05,
-              letterSpacing: 0.2,
-            ),
+            style:
+                textStyle ??
+                theme.textTheme.labelMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  height: 1.05,
+                  letterSpacing: 0.2,
+                ),
           ),
         ),
       ),

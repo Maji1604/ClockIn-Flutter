@@ -68,7 +68,9 @@ class _ClockInScreenState extends State<ClockInScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       bottomNavigationBar: Container(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewPadding.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewPadding.bottom,
+        ),
         child: BottomNavigation(
           selectedIndex: selectedNavIndex,
           onItemSelected: (index) {
@@ -227,16 +229,25 @@ class _ClockInScreenState extends State<ClockInScreen> {
                       SizedBox(height: gapSmall),
                       // Fixed slider at bottom - with proper spacing from navbar
                       Padding(
-                        padding: EdgeInsets.fromLTRB(20 * scale, 0, 20 * scale, 20),
+                        padding: EdgeInsets.fromLTRB(
+                          20 * scale,
+                          0,
+                          20 * scale,
+                          20,
+                        ),
                         child: ClockInButton(
                           isClockedIn: isClockedIn,
                           onToggle: _toggleClockIn,
-                          onBreak: isClockedIn ? () {
-                            // TODO: implement break logic (start/stop break)
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Break button tapped')),
-                            );
-                          } : null,
+                          onBreak: isClockedIn
+                              ? () {
+                                  // TODO: implement break logic (start/stop break)
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Break button tapped'),
+                                    ),
+                                  );
+                                }
+                              : null,
                           bottomMargin: 0,
                         ),
                       ),
