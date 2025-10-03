@@ -199,9 +199,13 @@ class _ClockInScreenState extends State<ClockInScreen> {
                           child: Container(
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.surface,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.borderLight),
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
+                              ),
                             ),
                             child: Scrollbar(
                               thumbVisibility: true,
@@ -240,7 +244,6 @@ class _ClockInScreenState extends State<ClockInScreen> {
                           onToggle: _toggleClockIn,
                           onBreak: isClockedIn
                               ? () {
-                                  // TODO: implement break logic (start/stop break)
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text('Break button tapped'),

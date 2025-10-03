@@ -105,7 +105,7 @@ class _ClockInButtonState extends State<ClockInButton>
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isClockedIn
-                ? [Colors.redAccent.shade200, Colors.red.shade400]
+                ? [AppColors.errorLight, AppColors.error]
                 : [
                     AppColors.primary.withValues(alpha: 0.95),
                     AppColors.primary,
@@ -133,7 +133,7 @@ class _ClockInButtonState extends State<ClockInButton>
                       child: AnimatedDefaultTextStyle(
                         duration: const Duration(milliseconds: 150),
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textOnPrimary,
                           fontSize: widget.labelFontSize,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0,
@@ -166,8 +166,12 @@ class _ClockInButtonState extends State<ClockInButton>
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  Colors.white.withValues(alpha: 0.25),
-                                  Colors.white.withValues(alpha: 0.05),
+                                  AppColors.textOnPrimary.withValues(
+                                    alpha: 0.25,
+                                  ),
+                                  AppColors.textOnPrimary.withValues(
+                                    alpha: 0.05,
+                                  ),
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -204,13 +208,15 @@ class _ClockInButtonState extends State<ClockInButton>
                         width: widget.thumbSize,
                         height: widget.thumbSize,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(
                             widget.thumbBorderRadius,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.10),
+                              color: AppColors.textPrimary.withValues(
+                                alpha: 0.10,
+                              ),
                               blurRadius: 6,
                               offset: const Offset(0, 3),
                             ),
@@ -220,7 +226,7 @@ class _ClockInButtonState extends State<ClockInButton>
                           child: Icon(
                             thumbIcon,
                             size: widget.iconSize,
-                            color: const Color.fromARGB(255, 59, 63, 70),
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ),
@@ -246,7 +252,7 @@ class _ClockInButtonState extends State<ClockInButton>
               size: widget.breakButtonSize,
               label: widget.breakLabel,
               onTap: widget.onBreak!,
-              color: widget.breakColor ?? Colors.green,
+              color: widget.breakColor ?? AppColors.accent,
               textStyle: widget.breakTextStyle,
             ),
           ],
@@ -284,7 +290,7 @@ class _BreakButton extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
+              color: AppColors.textPrimary.withValues(alpha: 0.15),
               blurRadius: 6,
               offset: const Offset(0, 3),
             ),
@@ -299,7 +305,7 @@ class _BreakButton extends StatelessWidget {
             style:
                 textStyle ??
                 theme.textTheme.labelMedium?.copyWith(
-                  color: Colors.white,
+                  color: AppColors.textOnPrimary,
                   fontWeight: FontWeight.w600,
                   height: 1.05,
                   letterSpacing: 0.2,

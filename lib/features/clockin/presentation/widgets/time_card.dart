@@ -59,13 +59,13 @@ class TimeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     // Defensive icon sizing: keep icon comfortably inside its container.
-    double _iconBaseSize =
+    double iconBaseSize =
         (compact ? iconSizeCompact : iconSizeNormal) * scale.clamp(0.8, 1.0);
     final containerSide =
         (compact ? containerSizeCompact : containerSizeNormal) * scale;
     // Leave at least 6 logical px padding total.
     final maxAllowed = (containerSide - 6).clamp(8, containerSide);
-    final iconSize = _iconBaseSize.clamp(8, maxAllowed);
+    final iconSize = iconBaseSize.clamp(8, maxAllowed);
 
     return GestureDetector(
       onTap: onTap,
@@ -77,7 +77,7 @@ class TimeCard extends StatelessWidget {
           (compact ? verticalPaddingCompact : verticalPaddingNormal) * scale,
         ),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(borderRadius),
           border: Border.all(color: AppColors.borderLight),
         ),
@@ -91,7 +91,7 @@ class TimeCard extends StatelessWidget {
                   height: containerSide,
                   clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.12),
+                    color: iconColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(iconContainerRadius),
                   ),
                   alignment: Alignment.center,

@@ -92,7 +92,7 @@ class ActivitySection extends StatelessWidget {
           height: iconSide,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.withOpacity(AppColors.primary, 0.1),
             borderRadius: BorderRadius.circular(iconBorderRadius),
           ),
           alignment: Alignment.center,
