@@ -18,110 +18,131 @@ class ActivityItem {
 class ActivitySection extends StatelessWidget {
   final List<ActivityItem> activities;
   final VoidCallback? onViewAll;
+  final double scale;
+  final double iconContainerSize;
+  final double iconSize;
+  final double iconBorderRadius;
+  final double itemSpacing;
+  final double horizontalSpacing;
+  final double textSpacing;
+  final double emptyStatePadding;
+  final double actionFontSize;
+  final double dateFontSize;
+  final double timeFontSize;
 
   const ActivitySection({
     super.key,
     required this.activities,
     this.onViewAll,
+    this.scale = 1.0,
+    this.iconContainerSize = 28,
+    this.iconSize = 14,
+    this.iconBorderRadius = 8,
+    this.itemSpacing = 10,
+    this.horizontalSpacing = 12,
+    this.textSpacing = 2,
+    this.emptyStatePadding = 8,
+    this.actionFontSize = 14,
+    this.dateFontSize = 10,
+    this.timeFontSize = 12,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Your Activity',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              GestureDetector(
-                onTap: onViewAll,
-                child: Text(
-                  'View All',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...activities.map((activity) => _buildActivityItem(
-            context,
-            activity.action,
-            activity.time,
-            activity.date,
-            activity.icon,
-          )).toList(),
+
+    // Just a vertical list; parent provides scrolling. Avoid extra scrollables here.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < activities.length; i++) ...[
+          _buildActivityItem(context, activities[i], theme),
+          if (i != activities.length - 1) SizedBox(height: itemSpacing * scale),
         ],
-      ),
+        if (activities.isEmpty)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: emptyStatePadding * scale),
+            child: Text(
+              'No activity yet',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+                fontSize:
+                    (theme.textTheme.bodySmall?.fontSize ?? timeFontSize) *
+                    scale,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
   Widget _buildActivityItem(
     BuildContext context,
-    String action,
-    String time,
-    String date,
-    IconData icon,
+    ActivityItem item,
+    ThemeData theme,
   ) {
-    final theme = Theme.of(context);
-    
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, size: 16, color: AppColors.primary),
+    final iconSide = iconContainerSize * scale;
+    final scaledIconSize = (iconSize * scale).clamp(10, iconSize).toDouble();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: iconSide,
+          height: iconSide,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(iconBorderRadius),
           ),
-          const SizedBox(width: 12),
-          Column(
+          alignment: Alignment.center,
+          child: FittedBox(
+            child: Icon(
+              item.icon,
+              size: scaledIconSize,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+        SizedBox(width: horizontalSpacing * scale),
+        Expanded(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                action,
+                item.action,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
+                  fontSize:
+                      (theme.textTheme.bodyMedium?.fontSize ?? actionFontSize) *
+                      scale,
                 ),
               ),
+              SizedBox(height: textSpacing * scale),
               Text(
-                date,
+                item.date,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.textTertiary,
-                  fontSize: 11,
+                  fontSize: (dateFontSize * scale).clamp(9, dateFontSize),
                 ),
               ),
             ],
           ),
-          const Spacer(),
-          Text(
-            time,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+        ),
+        SizedBox(width: horizontalSpacing * scale),
+        Text(
+          item.time,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.textSecondary,
+            fontSize:
+                (theme.textTheme.bodySmall?.fontSize ?? timeFontSize) * scale,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

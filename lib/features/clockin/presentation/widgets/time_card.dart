@@ -8,6 +8,24 @@ class TimeCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final VoidCallback? onTap;
+  final double scale;
+  final bool compact;
+  final double borderRadius;
+  final double iconContainerRadius;
+  final double iconSizeNormal;
+  final double iconSizeCompact;
+  final double containerSizeNormal;
+  final double containerSizeCompact;
+  final double horizontalPadding;
+  final double verticalPaddingNormal;
+  final double verticalPaddingCompact;
+  final double spacingBetweenIconAndTitle;
+  final double spacingBetweenTitleAndTime;
+  final double spacingBetweenTimeAndSubtitle;
+  final double timeFontSizeNormal;
+  final double timeFontSizeCompact;
+  final double subtitleFontSizeNormal;
+  final double subtitleFontSizeCompact;
 
   const TimeCard({
     super.key,
@@ -17,19 +35,50 @@ class TimeCard extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     this.onTap,
+    this.scale = 1.0,
+    this.compact = false,
+    this.borderRadius = 14,
+    this.iconContainerRadius = 8,
+    this.iconSizeNormal = 18,
+    this.iconSizeCompact = 16,
+    this.containerSizeNormal = 30,
+    this.containerSizeCompact = 26,
+    this.horizontalPadding = 12,
+    this.verticalPaddingNormal = 10,
+    this.verticalPaddingCompact = 6,
+    this.spacingBetweenIconAndTitle = 10,
+    this.spacingBetweenTitleAndTime = 6,
+    this.spacingBetweenTimeAndSubtitle = 4,
+    this.timeFontSizeNormal = 18,
+    this.timeFontSizeCompact = 16,
+    this.subtitleFontSizeNormal = 10,
+    this.subtitleFontSizeCompact = 9,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+    // Defensive icon sizing: keep icon comfortably inside its container.
+    double _iconBaseSize =
+        (compact ? iconSizeCompact : iconSizeNormal) * scale.clamp(0.8, 1.0);
+    final containerSide =
+        (compact ? containerSizeCompact : containerSizeNormal) * scale;
+    // Leave at least 6 logical px padding total.
+    final maxAllowed = (containerSide - 6).clamp(8, containerSide);
+    final iconSize = _iconBaseSize.clamp(8, maxAllowed);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14,14,14,14),
+        padding: EdgeInsets.fromLTRB(
+          horizontalPadding * scale,
+          (compact ? verticalPaddingCompact : verticalPaddingNormal) * scale,
+          horizontalPadding * scale,
+          (compact ? verticalPaddingCompact : verticalPaddingNormal) * scale,
+        ),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(borderRadius),
           border: Border.all(color: AppColors.borderLight),
         ),
         child: Column(
@@ -38,39 +87,71 @@ class TimeCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: 34,
-                  height: 34,
+                  width: containerSide,
+                  height: containerSide,
+                  clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
                     color: iconColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(iconContainerRadius),
                   ),
-                  child: Icon(icon, color: iconColor, size: 18),
+                  alignment: Alignment.center,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Icon(
+                      icon,
+                      color: iconColor,
+                      size: iconSize.toDouble(),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 10),
-                Text(
-                  title,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
+                SizedBox(width: spacingBetweenIconAndTitle * scale),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                      fontSize: compact
+                          ? (theme.textTheme.bodyMedium?.fontSize ?? 14) * 0.9
+                          : null,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: spacingBetweenTitleAndTime * scale),
             Text(
               time,
               style: theme.textTheme.headlineSmall?.copyWith(
-                fontSize: 20,
+                fontSize: compact
+                    ? (timeFontSizeCompact * scale).clamp(
+                        13,
+                        timeFontSizeCompact,
+                      )
+                    : (timeFontSizeNormal * scale).clamp(
+                        14,
+                        timeFontSizeNormal,
+                      ),
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: spacingBetweenTimeAndSubtitle * scale),
             Text(
               subtitle,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: AppColors.textTertiary,
-                fontSize: 11,
+                fontSize: compact
+                    ? (subtitleFontSizeCompact * scale).clamp(
+                        8.5,
+                        subtitleFontSizeCompact + 0.5,
+                      )
+                    : (subtitleFontSizeNormal * scale).clamp(
+                        9,
+                        subtitleFontSizeNormal,
+                      ),
               ),
             ),
           ],
