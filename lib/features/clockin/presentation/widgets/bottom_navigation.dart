@@ -20,9 +20,9 @@ class BottomNavigation extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildNavItem(Icons.home, 0),
-          _buildNavItem(Icons.history, 1),
+          _buildNavItem(Icons.beach_access, 1),
           _buildFloatingButton(),
-          _buildNavItem(Icons.assessment, 2),
+          _buildNavItem(Icons.calendar_month, 2),
           _buildNavItem(Icons.person, 3),
         ],
       ),

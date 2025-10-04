@@ -6,6 +6,9 @@ import '../widgets/time_card.dart';
 import '../widgets/activity_section.dart';
 import '../widgets/clock_in_button.dart';
 import '../widgets/bottom_navigation.dart';
+import 'holiday_page.dart';
+import '../../../leave/presentation/pages/leave_page.dart';
+import '../../../profile/presentation/pages/profile_page.dart';
 
 class ClockInScreen extends StatefulWidget {
   const ClockInScreen({super.key});
@@ -65,20 +68,28 @@ class _ClockInScreenState extends State<ClockInScreen> {
       ),
     ];
 
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      bottomNavigationBar: Container(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewPadding.bottom,
-        ),
-        child: BottomNavigation(
-          selectedIndex: selectedNavIndex,
-          onItemSelected: (index) {
-            setState(() => selectedNavIndex = index);
+    // Determine body per bottom nav index
+    final Widget pageBody;
+    if (selectedNavIndex == 1) {
+      pageBody = SafeArea(
+        child: LeavePage(onBack: () => setState(() => selectedNavIndex = 0)),
+      );
+    } else if (selectedNavIndex == 2) {
+      pageBody = SafeArea(
+        child: HolidayPage(
+          title: 'Holiday List',
+          onBack: () {
+            setState(() => selectedNavIndex = 0);
           },
         ),
-      ),
-      body: SafeArea(
+      );
+    } else if (selectedNavIndex == 3) {
+      pageBody = SafeArea(
+        child: ProfilePage(onBack: () => setState(() => selectedNavIndex = 0)),
+      );
+    } else {
+      // Home icon (index 0) -> Clock-in screen
+      pageBody = SafeArea(
         child: Column(
           children: [
             // Header
@@ -261,7 +272,23 @@ class _ClockInScreenState extends State<ClockInScreen> {
             ),
           ],
         ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: AppColors.surface,
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewPadding.bottom,
+        ),
+        child: BottomNavigation(
+          selectedIndex: selectedNavIndex,
+          onItemSelected: (index) {
+            setState(() => selectedNavIndex = index);
+          },
+        ),
       ),
+      body: pageBody,
     );
   }
 }
