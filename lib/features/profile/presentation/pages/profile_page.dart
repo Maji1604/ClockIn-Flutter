@@ -43,7 +43,7 @@ class ProfilePage extends StatelessWidget {
             builder: (context, constraints) {
               // Calculate 30% of available height for profile section
               final profileSectionHeight = constraints.maxHeight * 0.30;
-              
+
               return Column(
                 children: [
                   // Profile section - exactly 30% of screen
@@ -129,7 +129,9 @@ class ProfilePage extends StatelessWidget {
                         onPressed: () {
                           // Handle edit profile
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Edit Profile tapped')),
+                            const SnackBar(
+                              content: Text('Edit Profile tapped'),
+                            ),
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -211,7 +213,9 @@ class ProfilePage extends StatelessWidget {
             Icon(
               icon,
               size: 22,
-              color: isLogout ? const Color(0xFFFF6B6B) : const Color(0xFF6B7280),
+              color: isLogout
+                  ? const Color(0xFFFF6B6B)
+                  : const Color(0xFF6B7280),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -220,7 +224,9 @@ class ProfilePage extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: isLogout ? const Color(0xFFFF6B6B) : const Color(0xFF1A1A1A),
+                  color: isLogout
+                      ? const Color(0xFFFF6B6B)
+                      : const Color(0xFF1A1A1A),
                 ),
               ),
             ),

@@ -31,14 +31,16 @@ class BottomNavigation extends StatelessWidget {
 
   Widget _buildNavItem(IconData icon, int index) {
     final isSelected = selectedIndex == index;
-    
+
     return GestureDetector(
       onTap: () => onItemSelected?.call(index),
       child: Container(
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(24),
         ),
         child: Icon(
@@ -65,11 +67,7 @@ class BottomNavigation extends StatelessWidget {
           ),
         ],
       ),
-      child: const Icon(
-        Icons.group,
-        color: AppColors.textOnPrimary,
-        size: 24,
-      ),
+      child: const Icon(Icons.group, color: AppColors.textOnPrimary, size: 24),
     );
   }
 }
