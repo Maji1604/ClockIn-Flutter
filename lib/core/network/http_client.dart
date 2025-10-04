@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_environment.dart';
 import '../utils/logger.dart';
 
@@ -14,7 +16,7 @@ class HttpClient {
   static Dio _createDio() {
     final dio = Dio(
       BaseOptions(
-        baseUrl: '${AppEnvironment.apiBaseUrl}/${AppEnvironment.apiVersion}',
+        baseUrl: AppEnvironment.apiBaseUrl,
         connectTimeout: Duration(milliseconds: AppEnvironment.connectTimeout),
         receiveTimeout: Duration(milliseconds: AppEnvironment.receiveTimeout),
         headers: {
@@ -68,12 +70,30 @@ class _LoggingInterceptor extends Interceptor {
 /// Authentication interceptor for adding auth headers
 class _AuthInterceptor extends Interceptor {
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    // TODO: Add authentication token from storage
-    // final token = getAuthToken();
-    // if (token != null) {
-    //   options.headers['Authorization'] = 'Bearer $token';
-    // }
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    try {
+      // Get token from storage if available
+      final sharedPrefs = await SharedPreferences.getInstance();
+      final token = sharedPrefs.getString('auth_token');
+      
+      if (token != null) {
+        options.headers['Authorization'] = 'Bearer $token';
+      }
+      
+      // Get company slug from storage if available
+      final userJson = sharedPrefs.getString('auth_user');
+      if (userJson != null) {
+        final userMap = jsonDecode(userJson) as Map<String, dynamic>;
+        final companySlug = userMap['company_slug'] as String?;
+        
+        if (companySlug != null) {
+          options.headers['X-Company-ID'] = companySlug;
+        }
+      }
+    } catch (e) {
+      AppLogger.warning('Failed to add auth headers: $e', 'HTTP');
+    }
+    
     super.onRequest(options, handler);
   }
 }
