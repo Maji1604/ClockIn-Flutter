@@ -20,7 +20,10 @@ class HolidayBloc extends Bloc<HolidayEvent, HolidayState> {
   ) async {
     emit(HolidayLoading());
     try {
-      final holidays = await repository.getHolidays(event.token, year: event.year);
+      final holidays = await repository.getHolidays(
+        event.token,
+        year: event.year,
+      );
       emit(HolidaysLoadSuccess(holidays: holidays));
     } catch (e) {
       emit(HolidayError(message: e.toString()));

@@ -71,11 +71,7 @@ class _HolidayPageState extends State<HolidayPage> {
                   ],
                 ),
               ),
-              const Expanded(
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              ),
+              const Expanded(child: Center(child: CircularProgressIndicator())),
             ],
           );
         }
@@ -126,24 +122,19 @@ class _HolidayPageState extends State<HolidayPage> {
                       const SizedBox(height: 16),
                       Text(
                         'Error loading holidays',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[700],
-                        ),
+                        style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         state.message,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: () async {
-                          final token = await ServiceLocator.authRepository.getToken();
+                          final token = await ServiceLocator.authRepository
+                              .getToken();
                           if (token != null) {
                             context.read<HolidayBloc>().add(
                               FetchHolidaysEvent(token: token),
@@ -195,10 +186,11 @@ class _HolidayPageState extends State<HolidayPage> {
                       Expanded(
                         child: Text(
                           widget.title,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
                         ),
                       ),
                     ],
@@ -282,11 +274,7 @@ class _HolidayPageState extends State<HolidayPage> {
                 ],
               ),
             ),
-            const Expanded(
-              child: Center(
-                child: CircularProgressIndicator(),
-              ),
-            ),
+            const Expanded(child: Center(child: CircularProgressIndicator())),
           ],
         );
       },

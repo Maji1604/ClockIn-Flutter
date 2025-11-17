@@ -72,7 +72,7 @@ class _AdminHolidayManagementPageState
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                
+
                 // Header
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
@@ -108,9 +108,9 @@ class _AdminHolidayManagementPageState
                     ],
                   ),
                 ),
-                
+
                 const Divider(height: 1),
-                
+
                 // Content
                 Expanded(
                   child: ListView(
@@ -133,7 +133,7 @@ class _AdminHolidayManagementPageState
                         textCapitalization: TextCapitalization.words,
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Date selector
                       InkWell(
                         onTap: () async {
@@ -192,13 +192,16 @@ class _AdminHolidayManagementPageState
                                   ],
                                 ),
                               ),
-                              Icon(Icons.chevron_right, color: Colors.grey[400]),
+                              Icon(
+                                Icons.chevron_right,
+                                color: Colors.grey[400],
+                              ),
                             ],
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Recurring toggle
                       Container(
                         decoration: BoxDecoration(
@@ -232,7 +235,7 @@ class _AdminHolidayManagementPageState
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Description field
                       TextField(
                         controller: descriptionController,
@@ -251,7 +254,7 @@ class _AdminHolidayManagementPageState
                     ],
                   ),
                 ),
-                
+
                 // Bottom buttons
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -301,7 +304,8 @@ class _AdminHolidayManagementPageState
                               return;
                             }
 
-                            final token = await ServiceLocator.authRepository.getToken();
+                            final token = await ServiceLocator.authRepository
+                                .getToken();
                             if (token == null) {
                               Navigator.pop(context);
                               return;
@@ -312,7 +316,8 @@ class _AdminHolidayManagementPageState
                                 token: token,
                                 title: titleController.text.trim(),
                                 date: _formatDateForApi(selectedDate),
-                                description: descriptionController.text.trim().isEmpty
+                                description:
+                                    descriptionController.text.trim().isEmpty
                                     ? null
                                     : descriptionController.text.trim(),
                                 isRecurring: isRecurring,
@@ -387,7 +392,7 @@ class _AdminHolidayManagementPageState
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                
+
                 // Header
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
@@ -423,9 +428,9 @@ class _AdminHolidayManagementPageState
                     ],
                   ),
                 ),
-                
+
                 const Divider(height: 1),
-                
+
                 // Content
                 Expanded(
                   child: ListView(
@@ -448,7 +453,7 @@ class _AdminHolidayManagementPageState
                         textCapitalization: TextCapitalization.words,
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Date selector
                       InkWell(
                         onTap: () async {
@@ -507,13 +512,16 @@ class _AdminHolidayManagementPageState
                                   ],
                                 ),
                               ),
-                              Icon(Icons.chevron_right, color: Colors.grey[400]),
+                              Icon(
+                                Icons.chevron_right,
+                                color: Colors.grey[400],
+                              ),
                             ],
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Recurring toggle
                       Container(
                         decoration: BoxDecoration(
@@ -547,7 +555,7 @@ class _AdminHolidayManagementPageState
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Description field
                       TextField(
                         controller: descriptionController,
@@ -566,7 +574,7 @@ class _AdminHolidayManagementPageState
                     ],
                   ),
                 ),
-                
+
                 // Bottom buttons
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -616,7 +624,8 @@ class _AdminHolidayManagementPageState
                               return;
                             }
 
-                            final token = await ServiceLocator.authRepository.getToken();
+                            final token = await ServiceLocator.authRepository
+                                .getToken();
                             if (token == null) {
                               Navigator.pop(context);
                               return;
@@ -628,7 +637,8 @@ class _AdminHolidayManagementPageState
                                 id: holiday.id,
                                 title: titleController.text.trim(),
                                 date: _formatDateForApi(selectedDate),
-                                description: descriptionController.text.trim().isEmpty
+                                description:
+                                    descriptionController.text.trim().isEmpty
                                     ? null
                                     : descriptionController.text.trim(),
                                 isRecurring: isRecurring,
@@ -751,7 +761,10 @@ class _AdminHolidayManagementPageState
               );
             } else if (state is HolidayError) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.red,
+                ),
               );
             }
           },
@@ -794,108 +807,110 @@ class _AdminHolidayManagementPageState
                 ),
               ),
 
-          // Holiday List
-          Expanded(
-            child: BlocBuilder<HolidayBloc, HolidayState>(
-              builder: (context, state) {
-                if (state is HolidayLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (state is HolidaysLoadSuccess) {
-                  if (state.holidays.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.calendar_today_outlined,
-                            size: 64,
-                            color: Colors.grey[400],
+              // Holiday List
+              Expanded(
+                child: BlocBuilder<HolidayBloc, HolidayState>(
+                  builder: (context, state) {
+                    if (state is HolidayLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (state is HolidaysLoadSuccess) {
+                      if (state.holidays.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.calendar_today_outlined,
+                                size: 64,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No holidays added yet',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton.icon(
+                                onPressed: _showAddHolidayDialog,
+                                icon: const Icon(Icons.add),
+                                label: const Text('Add Holiday'),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No holidays added yet',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          ElevatedButton.icon(
-                            onPressed: _showAddHolidayDialog,
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add Holiday'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
+                        );
+                      }
 
-                  return ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: state.holidays.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final holiday = state.holidays[index];
-                      return _HolidayCard(
-                        holiday: holiday,
-                        onEdit: () => _showEditHolidayDialog(holiday),
-                        onDelete: () => _confirmDelete(holiday),
-                        formatDate: _formatDate,
-                        formatDayOfWeek: _formatDayOfWeek,
+                      return ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: state.holidays.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final holiday = state.holidays[index];
+                          return _HolidayCard(
+                            holiday: holiday,
+                            onEdit: () => _showEditHolidayDialog(holiday),
+                            onDelete: () => _confirmDelete(holiday),
+                            formatDate: _formatDate,
+                            formatDayOfWeek: _formatDayOfWeek,
+                          );
+                        },
                       );
-                    },
-                  );
-                } else if (state is HolidayError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: Colors.red,
+                    } else if (state is HolidayError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              size: 64,
+                              color: Colors.red,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Error loading holidays',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              state.message,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () async {
+                                final token = await ServiceLocator
+                                    .authRepository
+                                    .getToken();
+                                if (token != null) {
+                                  context.read<HolidayBloc>().add(
+                                    FetchHolidaysEvent(token: token),
+                                  );
+                                }
+                              },
+                              child: const Text('Retry'),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Error loading holidays',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          state.message,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () async {
-                            final token = await ServiceLocator.authRepository.getToken();
-                            if (token != null) {
-                              context.read<HolidayBloc>().add(
-                                FetchHolidaysEvent(token: token),
-                              );
-                            }
-                          },
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
+                      );
+                    }
 
-                return const SizedBox.shrink();
-              },
-            ),
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
         ),
       ),
     );
@@ -1010,7 +1025,8 @@ class _HolidayCard extends StatelessWidget {
                     color: AppColors.textTertiary,
                   ),
                 ),
-                if (holiday.description != null && holiday.description!.isNotEmpty) ...[
+                if (holiday.description != null &&
+                    holiday.description!.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
                     holiday.description!,
