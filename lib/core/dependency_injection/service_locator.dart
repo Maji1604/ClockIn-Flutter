@@ -22,6 +22,11 @@ import '../../features/leave/data/datasources/leave_remote_data_source.dart';
 import '../../features/leave/data/repositories/leave_repository_impl.dart';
 import '../../features/leave/presentation/bloc/leave_bloc.dart';
 
+// Holiday
+import '../../features/holiday/data/datasources/holiday_remote_data_source.dart';
+import '../../features/holiday/data/repositories/holiday_repository_impl.dart';
+import '../../features/holiday/presentation/bloc/holiday_bloc.dart';
+
 class ServiceLocator {
   static late http.Client _httpClient;
   static late FlutterSecureStorage _secureStorage;
@@ -32,18 +37,21 @@ class ServiceLocator {
   static late EmployeeRemoteDataSource _employeeRemoteDataSource;
   static late AttendanceRemoteDataSource _attendanceRemoteDataSource;
   static late LeaveRemoteDataSource _leaveRemoteDataSource;
+  static late HolidayRemoteDataSource _holidayRemoteDataSource;
 
   // Repositories
   static late AuthRepository _authRepository;
   static late EmployeeRepository _employeeRepository;
   static late AttendanceRepository _attendanceRepository;
   static late LeaveRepository _leaveRepository;
+  static late HolidayRepository _holidayRepository;
 
   // BLoCs
   static late AuthBloc _authBloc;
   static late EmployeeBloc _employeeBloc;
   static late AttendanceBloc _attendanceBloc;
   static late LeaveBloc _leaveBloc;
+  static late HolidayBloc _holidayBloc;
 
   static void setup() {
     // External dependencies
@@ -62,6 +70,7 @@ class ServiceLocator {
       client: _httpClient,
     );
     _leaveRemoteDataSource = LeaveRemoteDataSourceImpl(client: _httpClient);
+    _holidayRemoteDataSource = HolidayRemoteDataSourceImpl(client: _httpClient);
 
     // Repositories
     _authRepository = AuthRepositoryImpl(
@@ -77,6 +86,9 @@ class ServiceLocator {
     _leaveRepository = LeaveRepository(
       remoteDataSource: _leaveRemoteDataSource,
     );
+    _holidayRepository = HolidayRepository(
+      remoteDataSource: _holidayRemoteDataSource,
+    );
 
     // BLoCs
     _authBloc = AuthBloc(authRepository: _authRepository);
@@ -85,6 +97,7 @@ class ServiceLocator {
       attendanceRepository: _attendanceRepository,
     );
     _leaveBloc = LeaveBloc(repository: _leaveRepository);
+    _holidayBloc = HolidayBloc(repository: _holidayRepository);
   }
 
   // Getters
@@ -92,5 +105,6 @@ class ServiceLocator {
   static EmployeeBloc get employeeBloc => _employeeBloc;
   static AttendanceBloc get attendanceBloc => _attendanceBloc;
   static LeaveBloc get leaveBloc => _leaveBloc;
+  static HolidayBloc get holidayBloc => _holidayBloc;
   static AuthRepository get authRepository => _authRepository;
 }

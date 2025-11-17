@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:http/http.dart' as http;
 import '../../../../core/core.dart';
+import '../../../../core/dependency_injection/service_locator.dart';
 import 'employee_management_screen.dart';
 import 'admin_leave_management_screen.dart';
+import '../../../holiday/presentation/pages/admin_holiday_management_page.dart';
+import '../../../holiday/presentation/bloc/holiday_bloc.dart';
+import '../../../holiday/data/repositories/holiday_repository_impl.dart';
+import '../../../holiday/data/datasources/holiday_remote_data_source.dart';
 
 class AdminDashboard extends StatelessWidget {
   final Map<String, dynamic>? adminData;
@@ -86,6 +93,31 @@ class AdminDashboard extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (context) => AdminLeaveManagementScreen(
                             adminData: adminData ?? {},
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _DashboardCard(
+                    icon: Icons.calendar_month_rounded,
+                    title: 'Holidays',
+                    description: 'Manage holidays',
+                    color: const Color(0xFF10B981),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => BlocProvider(
+                            create: (context) => HolidayBloc(
+                              repository: HolidayRepository(
+                                remoteDataSource: HolidayRemoteDataSourceImpl(
+                                  client: http.Client(),
+                                ),
+                              ),
+                            ),
+                            child: AdminHolidayManagementPage(
+                              onBack: () => Navigator.of(context).pop(),
+                              userData: adminData ?? {},
+                            ),
                           ),
                         ),
                       );

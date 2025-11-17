@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
+import 'package:http/http.dart' as http;
 import '../../../../core/core.dart';
 import '../bloc/attendance_bloc.dart';
 import '../bloc/attendance_event.dart';
@@ -14,6 +15,9 @@ import '../widgets/bottom_navigation.dart';
 import 'holiday_page.dart';
 import '../../../leave/presentation/pages/leave_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
+import '../../../holiday/presentation/bloc/holiday_bloc.dart';
+import '../../../holiday/data/repositories/holiday_repository_impl.dart';
+import '../../../holiday/data/datasources/holiday_remote_data_source.dart';
 
 import '../../../../core/utils/app_logger.dart';
 
@@ -408,11 +412,20 @@ class _ClockInScreenState extends State<ClockInScreen> {
       );
     } else if (selectedNavIndex == 2) {
       pageBody = SafeArea(
-        child: HolidayPage(
-          title: 'Holiday List',
-          onBack: () {
-            setState(() => selectedNavIndex = 0);
-          },
+        child: BlocProvider(
+          create: (context) => HolidayBloc(
+            repository: HolidayRepository(
+              remoteDataSource: HolidayRemoteDataSourceImpl(
+                client: http.Client(),
+              ),
+            ),
+          ),
+          child: HolidayPage(
+            title: 'Holiday List',
+            onBack: () {
+              setState(() => selectedNavIndex = 0);
+            },
+          ),
         ),
       );
     } else if (selectedNavIndex == 3) {
