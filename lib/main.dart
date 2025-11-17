@@ -1,27 +1,12 @@
 import 'package:flutter/material.dart';
 import 'core/core.dart';
-import 'features/clockin/presentation/pages/clockin_screen.dart';
+import 'features/auth/presentation/pages/role_selection_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize environment variables
-  await AppEnvironment.initialize();
-
   // Initialize theme manager
   await ThemeManager().initialize();
-
-  // Initialize logger (after environment is loaded)
-  AppLogger.info(
-    'Starting ${AppEnvironment.appName} v${AppEnvironment.appVersion}...',
-    'MAIN',
-  );
-  AppLogger.info('Environment: ${AppEnvironment.appEnvironment}', 'MAIN');
-
-  // Print environment variables in development mode
-  if (AppEnvironment.isDevelopment) {
-    AppEnvironment.printEnvironmentVariables();
-  }
 
   // Initialize dependencies
   await initializeDependencies();
@@ -34,18 +19,12 @@ class ClockInApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: ThemeManager(),
-      builder: (context, child) {
-        return MaterialApp(
-          title: AppEnvironment.appName,
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: ThemeManager().themeMode,
-          home: const ClockInScreen(),
-        );
-      },
+    return MaterialApp(
+      title: AppEnvironment.appName,
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      themeMode: ThemeMode.light,
+      home: const RoleSelectionPage(),
     );
   }
 }
