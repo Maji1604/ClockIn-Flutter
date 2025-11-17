@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/core.dart';
+import '../../../../core/dependency_injection/service_locator.dart';
+import '../bloc/leave_bloc.dart';
+
+import '../../../../core/utils/app_logger.dart';
 
 class LeavePage extends StatefulWidget {
   final VoidCallback onBack;
-  const LeavePage({super.key, required this.onBack});
+  final Map<String, dynamic> userData;
+
+  const LeavePage({super.key, required this.onBack, required this.userData});
 
   @override
   State<LeavePage> createState() => _LeavePageState();
@@ -12,21 +19,24 @@ class LeavePage extends StatefulWidget {
 class _LeavePageState extends State<LeavePage> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
-  final _dateController = TextEditingController();
+  final _startDateController = TextEditingController();
+  final _endDateController = TextEditingController();
   String _leaveType = 'CL';
-  String _leavePeriod = 'Partial';
-  DateTime _selectedDate = DateTime.now();
+  String _leavePeriod = 'Full Day';
+  DateTime _startDate = DateTime.now();
+  DateTime? _endDate;
 
   @override
   void initState() {
     super.initState();
-    _dateController.text = _formatDate(_selectedDate);
+    _startDateController.text = _formatDate(_startDate);
   }
 
   @override
   void dispose() {
     _descriptionController.dispose();
-    _dateController.dispose();
+    _startDateController.dispose();
+    _endDateController.dispose();
     super.dispose();
   }
 
@@ -34,34 +44,83 @@ class _LeavePageState extends State<LeavePage> {
     return '${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}/${date.year}';
   }
 
-  Future<void> _selectDate() async {
+  String _formatDateForApi(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _selectStartDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
+      initialDate: _startDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (picked != null && picked != _selectedDate) {
+    if (picked != null && picked != _startDate) {
       setState(() {
-        _selectedDate = picked;
-        _dateController.text = _formatDate(picked);
+        _startDate = picked;
+        _startDateController.text = _formatDate(picked);
+        // Reset end date if it's before new start date
+        if (_endDate != null && _endDate!.isBefore(picked)) {
+          _endDate = null;
+          _endDateController.clear();
+        }
       });
     }
   }
 
-  void _submit() {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    _showSuccessSheet();
+  Future<void> _selectEndDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _endDate ?? _startDate.add(const Duration(days: 1)),
+      firstDate: _startDate,
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null && picked != _endDate) {
+      setState(() {
+        _endDate = picked;
+        _endDateController.text = _formatDate(picked);
+      });
+    }
   }
 
-  Future<void> _showSuccessSheet() async {
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return _SuccessSheet(onDone: () => Navigator.of(context).pop());
-      },
+  void _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    // Get token and empId from userData
+    final token = await ServiceLocator.authRepository.getToken();
+    final empId = widget.userData['employee_id'] as String;
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Authentication error. Please login again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    AppLogger.info('=== LEAVE SUBMISSION START ===');
+    AppLogger.debug('Employee ID: $empId');
+    AppLogger.debug('Leave Type: $_leaveType');
+    AppLogger.debug('Leave Period: $_leavePeriod');
+    AppLogger.debug('Start Date: ${_formatDateForApi(_startDate)}');
+    AppLogger.debug(
+      'End Date: ${_endDate != null ? _formatDateForApi(_endDate!) : 'null'}',
+    );
+    AppLogger.debug('Reason: ${_descriptionController.text}');
+
+    // Dispatch submit leave event
+    context.read<LeaveBloc>().add(
+      SubmitLeaveEvent(
+        token: token,
+        empId: empId,
+        leaveType: _leaveType,
+        leavePeriod: _leavePeriod,
+        startDate: _formatDateForApi(_startDate),
+        endDate: _endDate != null ? _formatDateForApi(_endDate!) : null,
+        reason: _descriptionController.text.trim(),
+      ),
     );
   }
 
@@ -75,215 +134,348 @@ class _LeavePageState extends State<LeavePage> {
     });
   }
 
+  void _showLeaveHistorySheet() async {
+    final token = await ServiceLocator.authRepository.getToken();
+    final empId = widget.userData['employee_id'] as String;
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Authentication error. Please login again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Fetch leaves
+    context.read<LeaveBloc>().add(
+      FetchEmployeeLeavesEvent(token: token, empId: empId),
+    );
+
+    // Show bottom sheet
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _LeaveHistorySheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Column(
-      children: [
-        // Header
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: SizedBox(
-            height: 36,
-            child: Stack(
-              children: [
-                // Back button on the left
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: InkWell(
-                    onTap: _handleBackButton,
-                    borderRadius: BorderRadius.circular(20),
-                    child: const Padding(
-                      padding: EdgeInsets.all(6.0),
-                      child: Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 18,
-                        color: AppColors.textPrimary,
+    return BlocListener<LeaveBloc, LeaveState>(
+      listener: (context, state) {
+        AppLogger.info('=== LEAVE PAGE: BlocListener state change ===');
+        AppLogger.debug('New state: ${state.runtimeType}');
+
+        if (state is LeaveSubmitSuccess) {
+          AppLogger.debug('LEAVE: Submission successful');
+
+          // Clear form
+          _descriptionController.clear();
+          _startDate = DateTime.now();
+          _endDate = null;
+          _startDateController.text = _formatDate(_startDate);
+          _endDateController.clear();
+          _leaveType = 'CL';
+          _leavePeriod = 'Full Day';
+
+          // Show success sheet
+          _showSuccessSheet();
+        } else if (state is LeaveError) {
+          AppLogger.debug('LEAVE: Error - ${state.message}');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+      },
+      child: BlocBuilder<LeaveBloc, LeaveState>(
+        builder: (context, state) {
+          AppLogger.debug(
+            'LEAVE: BlocBuilder rebuilding with state: ${state.runtimeType}',
+          );
+          final isLoading = state is LeaveLoading;
+          AppLogger.debug('LEAVE: isLoading = $isLoading');
+
+          return Column(
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: SizedBox(
+                  height: 36,
+                  child: Stack(
+                    children: [
+                      // Back button on the left
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: InkWell(
+                          onTap: _handleBackButton,
+                          borderRadius: BorderRadius.circular(20),
+                          child: const Padding(
+                            padding: EdgeInsets.all(6.0),
+                            child: Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              size: 18,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
                       ),
+                      // Centered title
+                      Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Apply Leave',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      // History button on the right
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: InkWell(
+                          onTap: _showLeaveHistorySheet,
+                          borderRadius: BorderRadius.circular(20),
+                          child: Padding(
+                            padding: const EdgeInsets.all(6.0),
+                            child: Icon(
+                              Icons.history_rounded,
+                              size: 20,
+                              color: AppColors.textPrimary.withOpacity(0.8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Form
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 16),
+                        // Leave Type Dropdown
+                        DropdownButtonFormField<String>(
+                          value: _leaveType,
+                          decoration: InputDecoration(
+                            labelText: 'Leave Type',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: AppColors.primary,
+                                width: 2,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'CL', child: Text('CL')),
+                            DropdownMenuItem(value: 'SL', child: Text('SL')),
+                            DropdownMenuItem(value: 'PL', child: Text('PL')),
+                            DropdownMenuItem(value: 'ML', child: Text('ML')),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _leaveType = value;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        // Leave Period Dropdown
+                        DropdownButtonFormField<String>(
+                          value: _leavePeriod,
+                          decoration: InputDecoration(
+                            labelText: 'Leave Period',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: AppColors.primary,
+                                width: 2,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'Full Day',
+                              child: Text('Full Day'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Partial',
+                              child: Text('Partial'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Half Day',
+                              child: Text('Half Day'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _leavePeriod = value;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        // From Date Field
+                        TextFormField(
+                          controller: _startDateController,
+                          decoration: InputDecoration(
+                            labelText: 'From Date',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: AppColors.primary,
+                                width: 2,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                            suffixIcon: Icon(
+                              Icons.calendar_today,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                          ),
+                          readOnly: true,
+                          onTap: _selectStartDate,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please select start date';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        // To Date Field (Optional for multiple days)
+                        TextFormField(
+                          controller: _endDateController,
+                          decoration: InputDecoration(
+                            labelText: 'To Date (Optional)',
+                            hintText: 'For multiple days leave',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: AppColors.primary,
+                                width: 2,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                            suffixIcon: Icon(
+                              Icons.event,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                          ),
+                          readOnly: true,
+                          onTap: _selectEndDate,
+                        ),
+                        const SizedBox(height: 16),
+                        // Leave Description
+                        TextFormField(
+                          controller: _descriptionController,
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            labelText: 'Leave Description',
+                            hintText: 'Description.....',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: AppColors.primary,
+                                width: 2,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.all(12),
+                          ),
+                          validator: (v) => (v == null || v.trim().isEmpty)
+                              ? 'Please enter description'
+                              : null,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                // Centered title
-                Align(
-                  alignment: Alignment.center,
-                  child: Text(
-                    'Apply Leave',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
+              ),
+
+              // Bottom button
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: _PrimaryGradientButton(
+                      text: isLoading ? 'Submitting...' : 'Apply Leave',
+                      onPressed: isLoading ? () {} : _submit,
                     ),
-                    textAlign: TextAlign.center,
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
-
-        // Form
-        Expanded(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-                  // Leave Type Dropdown
-                  DropdownButtonFormField<String>(
-                    value: _leaveType,
-                    decoration: InputDecoration(
-                      labelText: 'Leave Type',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(
-                          color: AppColors.primary,
-                          width: 2,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 16,
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'CL', child: Text('CL')),
-                      DropdownMenuItem(value: 'SL', child: Text('SL')),
-                      DropdownMenuItem(value: 'PL', child: Text('PL')),
-                      DropdownMenuItem(value: 'ML', child: Text('ML')),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _leaveType = value;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Leave Period Dropdown
-                  DropdownButtonFormField<String>(
-                    value: _leavePeriod,
-                    decoration: InputDecoration(
-                      labelText: 'Leave Period',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(
-                          color: AppColors.primary,
-                          width: 2,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 16,
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'Full Day',
-                        child: Text('Full Day'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Partial',
-                        child: Text('Partial'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Half Day',
-                        child: Text('Half Day'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _leavePeriod = value;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Date Field
-                  TextFormField(
-                    controller: _dateController,
-                    decoration: InputDecoration(
-                      labelText: 'Date',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(
-                          color: AppColors.primary,
-                          width: 2,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 16,
-                      ),
-                      suffixIcon: Icon(
-                        Icons.calendar_today,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                    ),
-                    readOnly: true,
-                    onTap: _selectDate,
-                  ),
-                  const SizedBox(height: 16),
-                  // Leave Description
-                  TextFormField(
-                    controller: _descriptionController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      labelText: 'Leave Description',
-                      hintText: 'Description.....',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(
-                          color: AppColors.primary,
-                          width: 2,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.all(12),
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Please enter description'
-                        : null,
-                  ),
-                ],
               ),
-            ),
-          ),
-        ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 
-        // Bottom button
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: _PrimaryGradientButton(
-                text: 'Apply Leave',
-                onPressed: _submit,
-              ),
-            ),
-          ),
-        ),
-      ],
+  Future<void> _showSuccessSheet() async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _SuccessSheet(
+          onDone: () {
+            Navigator.of(context).pop();
+            // Optionally navigate to leave history or refresh
+          },
+        );
+      },
     );
   }
 }
@@ -660,6 +852,367 @@ class _SuccessSheetState extends State<_SuccessSheet>
           ),
         );
       },
+    );
+  }
+}
+
+// Leave History Bottom Sheet Widget
+class _LeaveHistorySheet extends StatelessWidget {
+  const _LeaveHistorySheet();
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return const Color(0xFF10B981);
+      case 'rejected':
+        return const Color(0xFFEF4444);
+      case 'pending':
+      default:
+        return const Color(0xFFF59E0B);
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return Icons.check_circle_rounded;
+      case 'rejected':
+        return Icons.cancel_rounded;
+      case 'pending':
+      default:
+        return Icons.access_time_rounded;
+    }
+  }
+
+  String _formatDate(String date) {
+    try {
+      final dateTime = DateTime.parse(date);
+      return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
+    } catch (e) {
+      return date;
+    }
+  }
+
+  String _getLeaveTypeLabel(String type) {
+    switch (type) {
+      case 'CL':
+        return 'Casual Leave';
+      case 'SL':
+        return 'Sick Leave';
+      case 'PL':
+        return 'Privilege Leave';
+      case 'ML':
+        return 'Maternity Leave';
+      default:
+        return type;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // Handle bar
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              children: [
+                const Text(
+                  'Leave History',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                  color: AppColors.textSecondary,
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          // Content
+          Expanded(
+            child: BlocBuilder<LeaveBloc, LeaveState>(
+              builder: (context, state) {
+                if (state is LeaveLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primary,
+                      ),
+                    ),
+                  );
+                } else if (state is LeavesLoadSuccess) {
+                  if (state.leaves.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.history_rounded,
+                            size: 80,
+                            color: Colors.grey[300],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No leave history found',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: state.leaves.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final leave = state.leaves[index];
+                      final statusColor = _getStatusColor(leave.status);
+                      final statusIcon = _getStatusIcon(leave.status);
+
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey[200]!),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Status row
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: statusColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        statusIcon,
+                                        size: 14,
+                                        color: statusColor,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        leave.status.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: statusColor,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  _getLeaveTypeLabel(leave.leaveType),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            // Date row
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_rounded,
+                                  size: 14,
+                                  color: Colors.grey[600],
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _formatDate(leave.startDate),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                if (leave.endDate != null) ...[
+                                  Text(
+                                    ' - ',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  Text(
+                                    _formatDate(leave.endDate!),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[700],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    leave.leavePeriod,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey[700],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            // Reason
+                            Text(
+                              leave.reason,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                                height: 1.4,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            // Admin comments if available
+                            if (leave.adminComments != null &&
+                                leave.adminComments!.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue[50],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.comment_rounded,
+                                      size: 14,
+                                      color: Colors.blue[700],
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        leave.adminComments!,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.blue[900],
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            // Applied date
+                            const SizedBox(height: 8),
+                            Text(
+                              'Applied: ${_formatDate(leave.createdAt)}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                } else if (state is LeaveError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline_rounded,
+                          size: 64,
+                          color: Colors.red[300],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Failed to load leave history',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          state.message,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

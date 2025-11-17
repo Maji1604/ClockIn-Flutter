@@ -5,6 +5,7 @@ import '../../../../core/core.dart';
 /// to toggle clock-in / clock-out. Partial break logic removed per request.
 class ClockInButton extends StatefulWidget {
   final bool isClockedIn;
+  final bool isOnBreak;
   final VoidCallback onToggle;
   final VoidCallback? onBreak; // optional break action when clocked in
   final double trackHeight;
@@ -24,6 +25,7 @@ class ClockInButton extends StatefulWidget {
   const ClockInButton({
     super.key,
     required this.isClockedIn,
+    required this.isOnBreak,
     required this.onToggle,
     this.onBreak,
     this.trackHeight = 56,
@@ -250,9 +252,11 @@ class _ClockInButtonState extends State<ClockInButton>
             const SizedBox(width: 10),
             _BreakButton(
               size: widget.breakButtonSize,
-              label: widget.breakLabel,
+              label: widget.isOnBreak ? 'End\nBreak' : widget.breakLabel,
               onTap: widget.onBreak!,
-              color: widget.breakColor ?? AppColors.accent,
+              color: widget.isOnBreak
+                  ? AppColors.error
+                  : (widget.breakColor ?? AppColors.accent),
               textStyle: widget.breakTextStyle,
             ),
           ],

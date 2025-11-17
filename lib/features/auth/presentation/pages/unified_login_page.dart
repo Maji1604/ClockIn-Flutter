@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/core.dart';
 import '../../../clockin/presentation/pages/clockin_screen.dart';
 import '../../../admin/presentation/pages/admin_dashboard.dart';
+import '../bloc/auth_bloc.dart';
+import '../bloc/auth_event.dart';
+import '../bloc/auth_state.dart';
+
+import '../../../../core/utils/app_logger.dart';
 
 class UnifiedLoginPage extends StatefulWidget {
   const UnifiedLoginPage({super.key});
@@ -17,243 +21,250 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
-  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    AppLogger.info('=== UNIFIED LOGIN PAGE: initState ===');
+    AppLogger.debug('UnifiedLoginPage initialized');
+  }
 
   @override
   void dispose() {
+    AppLogger.info('=== UNIFIED LOGIN PAGE: dispose ===');
     _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
+    AppLogger.debug('UnifiedLoginPage disposed');
   }
 
-  Future<void> _handleLogin() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final response = await http.post(
-        Uri.parse(
-          'https://clockin-backend.permasparkapp.workers.dev/api/auth/login',
-        ),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'identifier': _identifierController.text.trim(),
-          'password': _passwordController.text,
-        }),
-      );
-
-      if (!mounted) return;
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200 && data['success'] == true) {
-        final user = data['data']['user'];
-        final token = data['data']['token'];
-        final userType = user['type'];
-
-        // TODO: Store token and user data in secure storage
-
-        // Show success message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Welcome back ${userType == 'admin' ? user['email'] : user['name']}!',
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
-
-          // Navigate to appropriate screen based on user type
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => userType == 'admin'
-                  ? const AdminDashboard()
-                  : const ClockInScreen(),
-            ),
-          );
-        }
-      } else {
-        // Show error message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(data['message'] ?? 'Login failed'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+  void _handleLogin(BuildContext context) {
+    AppLogger.info('=== UNIFIED LOGIN PAGE: _handleLogin ===');
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      AppLogger.debug('LOGIN: Form validation failed');
+      return;
     }
-  }
 
-  bool _isEmail(String value) {
-    return value.contains('@');
+    AppLogger.debug('LOGIN: Form validated, dispatching LoginRequested event');
+    AppLogger.debug('LOGIN: Username: ${_identifierController.text.trim()}');
+    try {
+      context.read<AuthBloc>().add(
+        LoginRequested(
+          username: _identifierController.text.trim(),
+          password: _passwordController.text,
+        ),
+      );
+      AppLogger.debug('LOGIN: Event dispatched successfully');
+    } catch (e, stackTrace) {
+      AppLogger.info('=== LOGIN HANDLER ERROR ===');
+      AppLogger.debug('Error: $e');
+      AppLogger.debug('Stack trace: $stackTrace');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Back Button
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.arrow_back_ios_rounded),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(height: 40),
-                // Title
-                const Text(
-                  'Login',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Enter your email or employee ID to continue',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 48),
-                // Identifier Field (Email or Employee ID)
-                TextFormField(
-                  controller: _identifierController,
-                  keyboardType: TextInputType.text,
-                  decoration: const InputDecoration(
-                    labelText: 'Email or Employee ID',
-                    hintText: 'admin@company.com or EMP001',
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your email or employee ID';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-                // Password Field
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: !_isPasswordVisible,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    hintText: '••••••••',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordVisible
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _isPasswordVisible = !_isPasswordVisible;
-                        });
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        AppLogger.info('=== UNIFIED LOGIN PAGE: BlocListener state change ===');
+        AppLogger.debug('New state: ${state.runtimeType}');
+
+        if (state is AuthAuthenticated) {
+          AppLogger.debug('LOGIN: User authenticated - ${state.user.name}');
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Welcome back ${state.user.name}!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Navigate to appropriate screen based on role
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => state.user.isAdmin
+                  ? AdminDashboard(
+                      adminData: {
+                        'id': state.user.id,
+                        'name': state.user.name,
+                        'role': state.user.role,
+                      },
+                    )
+                  : ClockInScreen(
+                      userData: {
+                        'id': state.user.id,
+                        'name': state.user.name,
+                        'employee_id': state.user.employeeId,
                       },
                     ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                // Forgot Password
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      // TODO: Navigate to forgot password
-                    },
-                    child: const Text('Forgot Password?'),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                // Login Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: AppColors.primary.withValues(
-                        alpha: 0.6,
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
-                        : const Text(
-                            'Login',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Helper Text
-                Center(
-                  child: Text(
-                    'Use email for admin login or employee ID for employee login',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
             ),
-          ),
-        ),
+          );
+        } else if (state is AuthError) {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+      },
+      child: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, state) {
+          AppLogger.debug(
+            'LOGIN: BlocBuilder rebuilding with state: ${state.runtimeType}',
+          );
+          final isLoading = state is AuthLoading;
+          AppLogger.debug('LOGIN: isLoading = $isLoading');
+
+          return Scaffold(
+            backgroundColor: AppColors.surface,
+            body: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Back Button
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.arrow_back_ios_rounded),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      const SizedBox(height: 40),
+                      // Title
+                      const Text(
+                        'Login',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Enter your email or employee ID to continue',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      // Identifier Field (Email or Employee ID)
+                      TextFormField(
+                        controller: _identifierController,
+                        keyboardType: TextInputType.text,
+                        decoration: const InputDecoration(
+                          labelText: 'Email or Employee ID',
+                          hintText: 'admin@company.com or EMP001',
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter your email or employee ID';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      // Password Field
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: !_isPasswordVisible,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          hintText: '••••••••',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isPasswordVisible
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isPasswordVisible = !_isPasswordVisible;
+                              });
+                            },
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter your password';
+                          }
+                          if (value.length < 6) {
+                            return 'Password must be at least 6 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      // Forgot Password
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            // TODO: Navigate to forgot password
+                          },
+                          child: const Text('Forgot Password?'),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      // Login Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: isLoading
+                              ? null
+                              : () => _handleLogin(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: AppColors.primary
+                                .withValues(alpha: 0.6),
+                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  'Login',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Helper Text
+                      Center(
+                        child: Text(
+                          'Use email for admin login or employee ID for employee login',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

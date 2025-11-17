@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../../core/core.dart';
 import 'employee_management_screen.dart';
+import 'admin_leave_management_screen.dart';
 
 class AdminDashboard extends StatelessWidget {
-  const AdminDashboard({super.key});
+  final Map<String, dynamic>? adminData;
+
+  const AdminDashboard({super.key, this.adminData});
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +74,21 @@ class AdminDashboard extends StatelessWidget {
                     color: AppColors.accent,
                     onTap: () {
                       // TODO: Navigate to attendance screen
+                    },
+                  ),
+                  _DashboardCard(
+                    icon: Icons.event_note_rounded,
+                    title: 'Leaves',
+                    description: 'Manage leaves',
+                    color: const Color(0xFFEF4444),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => AdminLeaveManagementScreen(
+                            adminData: adminData ?? {},
+                          ),
+                        ),
+                      );
                     },
                   ),
                   _DashboardCard(

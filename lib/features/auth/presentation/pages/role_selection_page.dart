@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/core.dart';
 import 'unified_login_page.dart';
 
+import '../../../../core/utils/app_logger.dart';
 class RoleSelectionPage extends StatelessWidget {
   const RoleSelectionPage({super.key});
 
@@ -58,11 +59,23 @@ class RoleSelectionPage extends StatelessWidget {
                 description: 'Sign in with your email or employee ID',
                 gradient: const [AppColors.primary, AppColors.primaryLight],
                 onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const UnifiedLoginPage(),
-                    ),
-                  );
+                  AppLogger.info('=== ROLE SELECTION: Login button tapped ===');
+                  try {
+                    AppLogger.debug('ROLE SELECTION: Navigating to UnifiedLoginPage...');
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) {
+                          AppLogger.debug('ROLE SELECTION: Building UnifiedLoginPage...');
+                          return const UnifiedLoginPage();
+                        },
+                      ),
+                    );
+                    AppLogger.debug('ROLE SELECTION: Navigation initiated');
+                  } catch (e, stackTrace) {
+                    AppLogger.info('=== ROLE SELECTION NAVIGATION ERROR ===');
+                    AppLogger.debug('Error: $e');
+                    AppLogger.debug('Stack trace: $stackTrace');
+                  }
                 },
               ),
               const Spacer(flex: 2),
