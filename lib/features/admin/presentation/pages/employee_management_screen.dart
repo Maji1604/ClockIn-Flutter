@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:math';
 import '../../../../core/core.dart';
+import '../../../../core/config/api_config.dart';
 
 class EmployeeManagementScreen extends StatefulWidget {
   const EmployeeManagementScreen({super.key});
@@ -24,14 +25,20 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
   }
 
   Future<void> _loadEmployees() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
+      final baseUrl = ApiConfig.baseUrl;
+      
       final response = await http.get(
-        Uri.parse(
-          'https://clockin-backend.permasparkapp.workers.dev/api/employees',
-        ),
+        Uri.parse('$baseUrl/api/employees'),
         headers: {'Content-Type': 'application/json'},
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout');
+        },
       );
 
       if (response.statusCode == 200) {
@@ -326,10 +333,10 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
     String designation,
   ) async {
     try {
+      final baseUrl = ApiConfig.baseUrl;
+      
       final response = await http.post(
-        Uri.parse(
-          'https://clockin-backend.permasparkapp.workers.dev/api/employees',
-        ),
+        Uri.parse('$baseUrl/api/employees'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'empId': empId,
@@ -399,10 +406,10 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
     if (confirmed != true) return;
 
     try {
+      final baseUrl = ApiConfig.baseUrl;
+      
       final response = await http.delete(
-        Uri.parse(
-          'https://clockin-backend.permasparkapp.workers.dev/api/employees/$empId',
-        ),
+        Uri.parse('$baseUrl/api/employees/$empId'),
         headers: {'Content-Type': 'application/json'},
       );
 

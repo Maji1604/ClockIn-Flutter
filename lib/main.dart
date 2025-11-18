@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/core.dart';
+import 'core/config/api_config.dart';
 import 'core/dependency_injection/service_locator.dart';
 import 'features/auth/presentation/pages/role_selection_page.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
@@ -10,8 +10,8 @@ import 'features/auth/presentation/bloc/auth_event.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables
-  await dotenv.load(fileName: ".env");
+  // Initialize API configuration
+  await ApiConfig.initialize();
 
   // Initialize theme manager
   await ThemeManager().initialize();

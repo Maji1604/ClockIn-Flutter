@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/employee_model.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../../../core/config/api_config.dart';
 
 abstract class EmployeeRemoteDataSource {
   Future<List<EmployeeModel>> getEmployees(String token);
@@ -16,7 +16,8 @@ abstract class EmployeeRemoteDataSource {
 
 class EmployeeRemoteDataSourceImpl implements EmployeeRemoteDataSource {
   final http.Client client;
-  final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
+  
+  String get baseUrl => ApiConfig.baseUrl;
 
   EmployeeRemoteDataSourceImpl({required this.client});
 

@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/leave_model.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+import '../../../../core/config/api_config.dart';
 import '../../../../core/utils/app_logger.dart';
 
 abstract class LeaveRemoteDataSource {
@@ -39,7 +38,8 @@ abstract class LeaveRemoteDataSource {
 
 class LeaveRemoteDataSourceImpl implements LeaveRemoteDataSource {
   final http.Client client;
-  final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
+  
+  String get baseUrl => ApiConfig.baseUrl;
 
   LeaveRemoteDataSourceImpl({required this.client});
 
