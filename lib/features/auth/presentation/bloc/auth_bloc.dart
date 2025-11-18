@@ -46,8 +46,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     LogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
+    AppLogger.info('=== AUTH BLOC: _onLogoutRequested ===');
+    AppLogger.debug('AUTH BLOC: Calling authRepository.logout...');
     await authRepository.logout();
+    AppLogger.debug('AUTH BLOC: Logout complete, emitting AuthUnauthenticated...');
     emit(AuthUnauthenticated());
+    AppLogger.debug('AUTH BLOC: AuthUnauthenticated emitted');
   }
 
   Future<void> _onCheckAuthStatus(
@@ -55,6 +59,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     AppLogger.info('=== AUTH BLOC: _onCheckAuthStatus ===');
+    emit(AuthLoading());
     try {
       AppLogger.debug('AUTH BLOC: Checking for current user...');
       final user = await authRepository.getCurrentUser();

@@ -3,6 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/core.dart';
 import '../../../../core/dependency_injection/service_locator.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_event.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../auth/presentation/pages/role_selection_page.dart';
 import 'employee_management_screen.dart';
 import 'admin_leave_management_screen.dart';
 import '../../../holiday/presentation/pages/admin_holiday_management_page.dart';
@@ -17,7 +21,21 @@ class AdminDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        AppLogger.info('=== ADMIN DASHBOARD: AuthBloc state changed ===');
+        AppLogger.debug('ADMIN DASHBOARD: New state: ${state.runtimeType}');
+        
+        if (state is AuthUnauthenticated) {
+          AppLogger.info('=== ADMIN DASHBOARD: User logged out, navigating to role selection ===');
+          // Navigate to role selection page and clear navigation stack
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const RoleSelectionPage()),
+            (route) => false,
+          );
+        }
+      },
+      child: Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
@@ -26,8 +44,38 @@ class AdminDashboard extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () {
-              // TODO: Implement logout
-              Navigator.of(context).pushReplacementNamed('/');
+              AppLogger.info('=== ADMIN DASHBOARD: Logout button pressed ===');
+              // Show logout confirmation dialog
+              showDialog(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        AppLogger.debug('ADMIN DASHBOARD: Logout cancelled');
+                        Navigator.of(dialogContext).pop();
+                      },
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        AppLogger.info('=== ADMIN DASHBOARD: Logout confirmed ===');
+                        Navigator.of(dialogContext).pop();
+                        // Dispatch logout event
+                        AppLogger.debug('ADMIN DASHBOARD: Dispatching LogoutRequested event...');
+                        context.read<AuthBloc>().add(LogoutRequested());
+                        AppLogger.debug('ADMIN DASHBOARD: LogoutRequested event dispatched');
+                      },
+                      child: const Text(
+                        'Logout',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
+                ),
+              );
             },
             icon: const Icon(Icons.logout),
             tooltip: 'Logout',
@@ -147,7 +195,8 @@ class AdminDashboard extends StatelessWidget {
           ],
         ),
       ),
-    );
+      ), // End of BlocListener child (Scaffold)
+    ); // End of BlocListener
   }
 }
 

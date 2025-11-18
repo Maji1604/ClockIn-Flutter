@@ -295,11 +295,9 @@ class _AdminHolidayManagementPageState
                         child: ElevatedButton(
                           onPressed: () async {
                             if (titleController.text.trim().isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Please enter a title'),
-                                  backgroundColor: Colors.red,
-                                ),
+                              SnackBarUtil.showError(
+                                context,
+                                'Please enter a title',
                               );
                               return;
                             }
@@ -615,11 +613,9 @@ class _AdminHolidayManagementPageState
                         child: ElevatedButton(
                           onPressed: () async {
                             if (titleController.text.trim().isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Please enter a title'),
-                                  backgroundColor: Colors.red,
-                                ),
+                              SnackBarUtil.showError(
+                                context,
+                                'Please enter a title',
                               );
                               return;
                             }
@@ -753,19 +749,9 @@ class _AdminHolidayManagementPageState
         child: BlocListener<HolidayBloc, HolidayState>(
           listener: (context, state) {
             if (state is HolidayActionSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.green,
-                ),
-              );
+              SnackBarUtil.showSuccess(context, state.message);
             } else if (state is HolidayError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.red,
-                ),
-              );
+              SnackBarUtil.showError(context, state.message);
             }
           },
           child: Column(

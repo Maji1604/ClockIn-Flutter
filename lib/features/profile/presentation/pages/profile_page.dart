@@ -1,200 +1,291 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:http/http.dart' as http;
 import '../../../../core/core.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_event.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../auth/presentation/pages/role_selection_page.dart';
+import '../../data/datasources/profile_remote_data_source.dart';
+import '../../data/repositories/profile_repository_impl.dart';
+import '../bloc/profile_bloc.dart';
+import 'my_profile_detail_page.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   final VoidCallback onBack;
-  const ProfilePage({super.key, required this.onBack});
+  final Map<String, dynamic> userData;
+
+  const ProfilePage({super.key, required this.onBack, required this.userData});
 
   @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Header with back button
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: SizedBox(
-            height: 36,
-            child: Stack(
-              children: [
-                // Back button on the left
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: InkWell(
-                    onTap: onBack,
-                    borderRadius: BorderRadius.circular(20),
-                    child: const Padding(
-                      padding: EdgeInsets.all(6.0),
-                      child: Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 18,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // Profile content
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              // Calculate 30% of available height for profile section
-              final profileSectionHeight = constraints.maxHeight * 0.30;
-
-              return Column(
+    // Get current user from AuthBloc to access designation
+    final authState = context.watch<AuthBloc>().state;
+    final designation = authState is AuthAuthenticated
+        ? authState.user.designation ?? 'Employee'
+        : 'Employee';
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        AppLogger.info('=== PROFILE PAGE: AuthBloc state changed ===');
+        AppLogger.debug('PROFILE PAGE: New state: ${state.runtimeType}');
+        
+        if (state is AuthUnauthenticated) {
+          AppLogger.info('=== PROFILE PAGE: User logged out, navigating to role selection ===');
+          // Navigate to role selection page and clear navigation stack
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const RoleSelectionPage()),
+            (route) => false,
+          );
+        }
+      },
+      child: Column(
+        children: [
+          // Header with back button
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: SizedBox(
+              height: 36,
+              child: Stack(
                 children: [
-                  // Profile section - exactly 30% of screen
-                  SizedBox(
-                    height: profileSectionHeight,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Profile avatar with camera icon
-                        Stack(
-                          children: [
-                            Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.grey.shade300,
-                                  width: 3,
-                                ),
-                              ),
-                              child: ClipOval(
-                                child: Container(
-                                  color: Colors.grey.shade200,
-                                  child: const Icon(
-                                    Icons.person,
-                                    size: 50,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // Camera icon for changing profile picture
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                width: 28,
-                                height: 28,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF4A90E2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.camera_alt,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        // Name
-                        const Text(
-                          'John Doe',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1A1A1A),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        // Role/Designation
-                        Text(
-                          'App Developer',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Edit Profile Button
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // Handle edit profile
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Edit Profile tapped'),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4A90E2),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Edit Profile',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                  // Back button on the left
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: InkWell(
+                      onTap: widget.onBack,
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.all(6.0),
+                        child: Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 18,
+                          color: AppColors.textPrimary,
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Menu items - wrapped in Expanded to prevent overflow
-                  Expanded(
-                    child: Column(
-                      children: [
-                        _buildMenuItem(
-                          icon: Icons.person_outline,
-                          title: 'My Profile',
-                          onTap: () {},
-                        ),
-                        _buildMenuItem(
-                          icon: Icons.settings_outlined,
-                          title: 'settings',
-                          onTap: () {},
-                        ),
-                        _buildMenuItem(
-                          icon: Icons.shield_outlined,
-                          title: 'Privacy Policy',
-                          onTap: () {},
-                        ),
-                        _buildMenuItem(
-                          icon: Icons.description_outlined,
-                          title: 'Terms & Conditions',
-                          onTap: () {},
-                        ),
-                        const SizedBox(height: 8),
-                        // Log out
-                        _buildMenuItem(
-                          icon: Icons.logout,
-                          title: 'Log out',
-                          onTap: () {},
-                          isLogout: true,
-                        ),
-                        const Spacer(),
-                      ],
                     ),
                   ),
                 ],
-              );
-            },
+              ),
+            ),
           ),
-        ),
-      ],
+
+          // Profile content
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Calculate 30% of available height for profile section
+                final profileSectionHeight = constraints.maxHeight * 0.30;
+
+                return Column(
+                  children: [
+                    // Profile section - exactly 30% of screen
+                    SizedBox(
+                      height: profileSectionHeight,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Profile avatar with camera icon
+                          Stack(
+                            children: [
+                              Container(
+                                width: 100,
+                                height: 100,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                    width: 3,
+                                  ),
+                                ),
+                                child: ClipOval(
+                                  child: Container(
+                                    color: Colors.grey.shade200,
+                                    child: const Icon(
+                                      Icons.person,
+                                      size: 50,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Camera icon for changing profile picture
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF4A90E2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // Name
+                          Text(
+                            widget.userData['name'] as String? ?? 'User',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1A1A1A),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          // Role/Designation
+                          Text(
+                            designation,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Edit Profile Button
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // Handle edit profile
+                            SnackBarUtil.showInfo(context, 'Edit Profile tapped');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4A90E2),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Edit Profile',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // Menu items - wrapped in Expanded to prevent overflow
+                    Expanded(
+                      child: Column(
+                        children: [
+                          _buildMenuItem(
+                            icon: Icons.person_outline,
+                            title: 'My Profile',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => BlocProvider(
+                                    create: (context) => ProfileBloc(
+                                      repository: ProfileRepositoryImpl(
+                                        remoteDataSource:
+                                            ProfileRemoteDataSourceImpl(
+                                              client: http.Client(),
+                                            ),
+                                      ),
+                                    ),
+                                    child: MyProfileDetailPage(
+                                      userData: widget.userData,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          _buildMenuItem(
+                            icon: Icons.settings_outlined,
+                            title: 'settings',
+                            onTap: () {},
+                          ),
+                          _buildMenuItem(
+                            icon: Icons.shield_outlined,
+                            title: 'Privacy Policy',
+                            onTap: () {},
+                          ),
+                          _buildMenuItem(
+                            icon: Icons.description_outlined,
+                            title: 'Terms & Conditions',
+                            onTap: () {},
+                          ),
+                          const SizedBox(height: 8),
+                          // Log out
+                          _buildMenuItem(
+                            icon: Icons.logout,
+                            title: 'Log out',
+                            onTap: () {
+                              AppLogger.info('=== PROFILE PAGE: Logout button pressed ===');
+                              // Show confirmation dialog
+                              showDialog(
+                                context: context,
+                                builder: (dialogContext) => AlertDialog(
+                                  title: const Text('Logout'),
+                                  content: const Text(
+                                    'Are you sure you want to logout?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        AppLogger.debug('PROFILE PAGE: Logout cancelled');
+                                        Navigator.of(dialogContext).pop();
+                                      },
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        AppLogger.info('=== PROFILE PAGE: Logout confirmed ===');
+                                        Navigator.of(dialogContext).pop();
+                                        // Dispatch logout event
+                                        AppLogger.debug('PROFILE PAGE: Dispatching LogoutRequested event...');
+                                        context.read<AuthBloc>().add(
+                                          LogoutRequested(),
+                                        );
+                                        AppLogger.debug('PROFILE PAGE: LogoutRequested event dispatched');
+                                      },
+                                      child: const Text(
+                                        'Logout',
+                                        style: TextStyle(
+                                          color: Color(0xFFFF6B6B),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            isLogout: true,
+                          ),
+                          const Spacer(),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -51,11 +51,18 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
     AppLogger.debug('API URL: $uri');
 
     try {
+      AppLogger.debug('Making HTTP GET request...');
       final response = await client.get(
         uri,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
+        },
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          AppLogger.debug('Request timed out after 30 seconds');
+          throw Exception('Connection timeout - please check your internet connection');
         },
       );
 
@@ -65,15 +72,26 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       AppLogger.debug('Fetch attendance response body: ${response.body}');
 
       if (response.statusCode == 200) {
+        if (response.body.isEmpty) {
+          AppLogger.debug('Response body is empty');
+          throw Exception('Empty response from server');
+        }
+
         final data = jsonDecode(response.body);
         AppLogger.debug('Fetch attendance decoded response: $data');
 
-        if (data['success'] == true && data['data']?['attendance'] != null) {
-          AppLogger.debug('Attendance found: ${data["data"]["attendance"]}');
-          return AttendanceModel.fromJson(data['data']['attendance']);
+        if (data['success'] == true) {
+          if (data['data']?['attendance'] != null) {
+            AppLogger.debug('Attendance found: ${data["data"]["attendance"]}');
+            return AttendanceModel.fromJson(data['data']['attendance']);
+          } else {
+            AppLogger.debug('No attendance record found for today');
+            return null;
+          }
+        } else {
+          AppLogger.debug('Response success=false, message: ${data['message']}');
+          throw Exception(data['message'] ?? 'Failed to fetch attendance');
         }
-        AppLogger.debug('No attendance record found for today');
-        return null;
       } else {
         AppLogger.debug(
           'Failed to fetch attendance - status: ${response.statusCode}',
@@ -85,6 +103,18 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       AppLogger.debug('Error type: ${e.runtimeType}');
       AppLogger.debug('Error message: $e');
       AppLogger.debug('Stack trace: $stackTrace');
+      
+      // Provide more specific error messages
+      if (e.toString().contains('timeout') || e.toString().contains('Connection timeout')) {
+        throw Exception('Connection timeout - please check your internet connection');
+      } else if (e.toString().contains('SocketException') || e.toString().contains('Failed host lookup')) {
+        throw Exception('Network error - please check your internet connection');
+      } else if (e.toString().contains('FormatException')) {
+        throw Exception('Invalid response format from server');
+      } else if (e.toString().contains('HandshakeException')) {
+        throw Exception('SSL/TLS error - please check your network security settings');
+      }
+      
       rethrow;
     }
   }
@@ -187,14 +217,20 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
 
   @override
   Future<void> startBreak(String token, String empId) async {
+    AppLogger.info('=== START BREAK API CALL ===');
+    AppLogger.debug('Start break - empId: $empId');
+    
     final response = await client.post(
       Uri.parse('$baseUrl/api/attendance/break-start'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode({'emp_id': empId}),
+      body: jsonEncode({'empId': empId}),
     );
+    
+    AppLogger.debug('Start break response status: ${response.statusCode}');
+    AppLogger.debug('Start break response body: ${response.body}');
 
     if (response.statusCode != 200 && response.statusCode != 201) {
       final errorData = jsonDecode(response.body);
@@ -204,14 +240,20 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
 
   @override
   Future<void> endBreak(String token, String empId) async {
+    AppLogger.info('=== END BREAK API CALL ===');
+    AppLogger.debug('End break - empId: $empId');
+    
     final response = await client.post(
       Uri.parse('$baseUrl/api/attendance/break-end'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode({'emp_id': empId}),
+      body: jsonEncode({'empId': empId}),
     );
+    
+    AppLogger.debug('End break response status: ${response.statusCode}');
+    AppLogger.debug('End break response body: ${response.body}');
 
     if (response.statusCode != 200) {
       final errorData = jsonDecode(response.body);

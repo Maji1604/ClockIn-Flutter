@@ -5,6 +5,7 @@ import '../../../../core/dependency_injection/service_locator.dart';
 import '../bloc/leave_bloc.dart';
 
 import '../../../../core/utils/app_logger.dart';
+import '../../../../shared/widgets/outlined_label_text_field.dart';
 
 class LeavePage extends StatefulWidget {
   final VoidCallback onBack;
@@ -91,11 +92,9 @@ class _LeavePageState extends State<LeavePage> {
     final empId = widget.userData['employee_id'] as String;
 
     if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Authentication error. Please login again.'),
-          backgroundColor: Colors.red,
-        ),
+      SnackBarUtil.showError(
+        context,
+        'Authentication error. Please login again.',
       );
       return;
     }
@@ -139,11 +138,9 @@ class _LeavePageState extends State<LeavePage> {
     final empId = widget.userData['employee_id'] as String;
 
     if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Authentication error. Please login again.'),
-          backgroundColor: Colors.red,
-        ),
+      SnackBarUtil.showError(
+        context,
+        'Authentication error. Please login again.',
       );
       return;
     }
@@ -187,9 +184,7 @@ class _LeavePageState extends State<LeavePage> {
           _showSuccessSheet();
         } else if (state is LeaveError) {
           AppLogger.debug('LEAVE: Error - ${state.message}');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-          );
+          SnackBarUtil.showError(context, state.message);
         }
       },
       child: BlocBuilder<LeaveBloc, LeaveState>(
@@ -348,32 +343,16 @@ class _LeavePageState extends State<LeavePage> {
                         ),
                         const SizedBox(height: 16),
                         // From Date Field
-                        TextFormField(
+                        OutlinedLabelTextField(
+                          label: 'From Date',
                           controller: _startDateController,
-                          decoration: InputDecoration(
-                            labelText: 'From Date',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: AppColors.primary,
-                                width: 2,
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 16,
-                            ),
-                            suffixIcon: Icon(
-                              Icons.calendar_today,
-                              color: AppColors.primary,
-                              size: 20,
-                            ),
-                          ),
                           readOnly: true,
                           onTap: _selectStartDate,
+                          suffixIcon: const Icon(
+                            Icons.calendar_today,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please select start date';
@@ -383,54 +362,25 @@ class _LeavePageState extends State<LeavePage> {
                         ),
                         const SizedBox(height: 16),
                         // To Date Field (Optional for multiple days)
-                        TextFormField(
+                        OutlinedLabelTextField(
+                          label: 'To Date (Optional)',
+                          hintText: 'For multiple days leave',
                           controller: _endDateController,
-                          decoration: InputDecoration(
-                            labelText: 'To Date (Optional)',
-                            hintText: 'For multiple days leave',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: AppColors.primary,
-                                width: 2,
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 16,
-                            ),
-                            suffixIcon: Icon(
-                              Icons.event,
-                              color: AppColors.primary,
-                              size: 20,
-                            ),
-                          ),
                           readOnly: true,
                           onTap: _selectEndDate,
+                          suffixIcon: const Icon(
+                            Icons.event,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         // Leave Description
-                        TextFormField(
+                        OutlinedLabelTextField(
+                          label: 'Leave Description',
+                          hintText: 'Description.....',
                           controller: _descriptionController,
                           maxLines: 3,
-                          decoration: InputDecoration(
-                            labelText: 'Leave Description',
-                            hintText: 'Description.....',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: AppColors.primary,
-                                width: 2,
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.all(12),
-                          ),
                           validator: (v) => (v == null || v.trim().isEmpty)
                               ? 'Please enter description'
                               : null,

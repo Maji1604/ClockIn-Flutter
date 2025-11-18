@@ -56,7 +56,9 @@ class ServiceLocator {
   static void setup() {
     // External dependencies
     _httpClient = http.Client();
-    _secureStorage = const FlutterSecureStorage();
+    _secureStorage = const FlutterSecureStorage(
+      aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    );
 
     // Data Sources
     _authRemoteDataSource = AuthRemoteDataSourceImpl(client: _httpClient);

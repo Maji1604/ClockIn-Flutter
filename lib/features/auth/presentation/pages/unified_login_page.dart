@@ -3,9 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/core.dart';
 import '../../../clockin/presentation/pages/clockin_screen.dart';
 import '../../../admin/presentation/pages/admin_dashboard.dart';
+import '../../../profile/presentation/pages/onboarding_password_reset_page.dart';
+import '../../../profile/presentation/pages/onboarding_profile_completion_page.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../../data/models/user_model.dart';
 
 import '../../../../core/utils/app_logger.dart';
 
@@ -62,25 +65,173 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
     }
   }
 
+  Future<void> _handleOnboarding(
+    BuildContext context,
+    UserModel user,
+    String token,
+  ) async {
+    AppLogger.debug('ONBOARDING: Starting onboarding flow');
+
+    if (!context.mounted) {
+      AppLogger.debug('ONBOARDING: Context not mounted at start');
+      return;
+    }
+
+    // Step 1: Password reset if required
+    if (user.requiresPasswordReset) {
+      AppLogger.debug('ONBOARDING: Requires password reset');
+      final passwordResetResult = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (context) => OnboardingPasswordResetPage(token: token),
+        ),
+      );
+
+      AppLogger.debug(
+        'ONBOARDING: Password reset result: $passwordResetResult',
+      );
+
+      if (!context.mounted) {
+        AppLogger.debug('ONBOARDING: Context not mounted after password reset');
+        return;
+      }
+
+      if (passwordResetResult != true) {
+        AppLogger.debug('ONBOARDING: Password reset cancelled or failed');
+        SnackBarUtil.showWarning(
+          context,
+          'Password reset is required to continue',
+        );
+        return;
+      }
+      AppLogger.debug('ONBOARDING: Password reset successful');
+    }
+
+    // Step 2: Profile completion (mobile + address) if missing
+    final needsMobile = user.mobileNumber == null || user.mobileNumber!.isEmpty;
+    final needsAddress = user.address == null || user.address!.isEmpty;
+
+    if (needsMobile || needsAddress) {
+      AppLogger.debug(
+        'ONBOARDING: Requires profile completion (mobile: $needsMobile, address: $needsAddress)',
+      );
+
+      if (!context.mounted) {
+        AppLogger.debug(
+          'ONBOARDING: Context not mounted before profile completion',
+        );
+        return;
+      }
+
+      final profileCompletionResult = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (context) => OnboardingProfileCompletionPage(
+            token: token,
+            empId: user.employeeId!,
+            hasMobileNumber: !needsMobile,
+            hasAddress: !needsAddress,
+          ),
+        ),
+      );
+
+      AppLogger.debug(
+        'ONBOARDING: Profile completion result: $profileCompletionResult',
+      );
+
+      if (!context.mounted) {
+        AppLogger.debug(
+          'ONBOARDING: Context not mounted after profile completion',
+        );
+        return;
+      }
+
+      if (profileCompletionResult != true) {
+        AppLogger.debug('ONBOARDING: Profile completion skipped');
+      } else {
+        AppLogger.debug('ONBOARDING: Profile completion successful');
+      }
+    }
+
+    // Step 3: Navigate to main app
+    AppLogger.debug('ONBOARDING: Navigating to ClockInScreen');
+
+    if (!context.mounted) {
+      AppLogger.debug(
+        'ONBOARDING: Context not mounted before final navigation',
+      );
+      return;
+    }
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => ClockInScreen(
+          userData: {
+            'id': user.id,
+            'name': user.name,
+            'employee_id': user.employeeId,
+          },
+        ),
+      ),
+      (route) => false, // Remove all previous routes
+    );
+    AppLogger.debug('ONBOARDING: Navigation complete');
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
+      listener: (context, state) async {
         AppLogger.info('=== UNIFIED LOGIN PAGE: BlocListener state change ===');
         AppLogger.debug('New state: ${state.runtimeType}');
 
         if (state is AuthAuthenticated) {
           AppLogger.debug('LOGIN: User authenticated - ${state.user.name}');
+
           // Show success message
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Welcome back ${state.user.name}!'),
-              backgroundColor: Colors.green,
-            ),
+          SnackBarUtil.showSuccess(
+            context,
+            'Welcome back ${state.user.name}!',
           );
 
+          // Check if employee needs onboarding
+          if (state.user.isEmployee && state.user.needsOnboarding) {
+            AppLogger.debug('LOGIN: Employee needs onboarding');
+            AppLogger.debug(
+              'LOGIN: requiresPasswordReset=${state.user.requiresPasswordReset}',
+            );
+            AppLogger.debug('LOGIN: mobileNumber=${state.user.mobileNumber}');
+            AppLogger.debug('LOGIN: address=${state.user.address}');
+
+            // Get token from BLoC's repository
+            AppLogger.debug('LOGIN: Getting token from BLoC repository...');
+            final authBloc = context.read<AuthBloc>();
+            final token = await authBloc.authRepository.getToken();
+            AppLogger.debug(
+              'LOGIN: Token retrieved: ${token != null ? "YES" : "NO"}',
+            );
+
+            if (!context.mounted) {
+              AppLogger.debug('LOGIN: Context not mounted, returning');
+              return;
+            }
+
+            if (token == null) {
+              AppLogger.debug('LOGIN: Token is null, showing error');
+              SnackBarUtil.showError(
+                context,
+                'Authentication error. Please login again.',
+              );
+              return;
+            }
+
+            // Navigate to onboarding flow
+            AppLogger.debug('LOGIN: Calling _handleOnboarding...');
+            await _handleOnboarding(context, state.user, token);
+            AppLogger.debug('LOGIN: _handleOnboarding completed');
+            return;
+          }
+
           // Navigate to appropriate screen based on role
-          Navigator.of(context).pushReplacement(
+          Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
               builder: (context) => state.user.isAdmin
                   ? AdminDashboard(
@@ -98,12 +249,11 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
                       },
                     ),
             ),
+            (route) => false, // Remove all previous routes
           );
         } else if (state is AuthError) {
           // Show error message
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-          );
+          SnackBarUtil.showError(context, state.message);
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(

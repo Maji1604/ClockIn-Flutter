@@ -1,28 +1,42 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/core.dart';
 import 'core/config/api_config.dart';
 import 'core/dependency_injection/service_locator.dart';
-import 'features/auth/presentation/pages/role_selection_page.dart';
+import 'features/auth/presentation/pages/auth_guard.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // Catch all errors at the Flutter framework level
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize API configuration
-  await ApiConfig.initialize();
+    // Set up error handlers
+    FlutterError.onError = (FlutterErrorDetails details) {
+      AppLogger.error('Flutter Error: ${details.exception}');
+      AppLogger.debug('Stack trace: ${details.stack}');
+    };
 
-  // Initialize theme manager
-  await ThemeManager().initialize();
+    // Initialize API configuration
+    await ApiConfig.initialize();
 
-  // Initialize dependencies
-  await initializeDependencies();
+    // Initialize theme manager
+    await ThemeManager().initialize();
 
-  // Setup service locator for BLoC
-  ServiceLocator.setup();
+    // Initialize dependencies
+    await initializeDependencies();
 
-  runApp(const ClockInApp());
+    // Setup service locator for BLoC
+    ServiceLocator.setup();
+
+    runApp(const ClockInApp());
+  }, (error, stack) {
+    // Catch all Dart errors
+    AppLogger.error('Uncaught error: $error');
+    AppLogger.debug('Stack trace: $stack');
+  });
 }
 
 class ClockInApp extends StatelessWidget {
@@ -43,7 +57,7 @@ class ClockInApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         themeMode: ThemeMode.light,
-        home: const RoleSelectionPage(),
+        home: const AuthGuard(),
       ),
     );
   }

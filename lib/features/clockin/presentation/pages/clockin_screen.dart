@@ -15,6 +15,8 @@ import '../widgets/bottom_navigation.dart';
 import 'holiday_page.dart';
 import '../../../leave/presentation/pages/leave_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../holiday/presentation/bloc/holiday_bloc.dart';
 import '../../../holiday/data/repositories/holiday_repository_impl.dart';
 import '../../../holiday/data/datasources/holiday_remote_data_source.dart';
@@ -43,6 +45,7 @@ class _ClockInScreenState extends State<ClockInScreen> {
   int selectedNavIndex = 0;
   List<Map<String, dynamic>> activities = [];
   bool isLoading = true;
+  bool _isLoadingAttendance = false; // Flag to prevent duplicate loads
   String? attendanceId;
   Timer? _timer;
   Timer? _workTimer;
@@ -55,7 +58,19 @@ class _ClockInScreenState extends State<ClockInScreen> {
   void initState() {
     super.initState();
     _updateTime();
-    _loadAttendance(DateTime.now());
+    
+    // Wrap in try-catch to prevent crashes
+    try {
+      // Add a small delay to ensure widget is fully mounted
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _loadAttendance(DateTime.now());
+        }
+      });
+    } catch (e, stackTrace) {
+      AppLogger.error('Error in initState: $e');
+      AppLogger.debug('Stack trace: $stackTrace');
+    }
   }
 
   @override
@@ -67,31 +82,77 @@ class _ClockInScreenState extends State<ClockInScreen> {
   }
 
   void _loadAttendance(DateTime date) {
-    AppLogger.info(
-      '=== CLOCKIN_SCREEN: Loading attendance for date: $date ===',
-    );
-
-    // Stop timers when loading different date
-    final isToday =
-        date.year == DateTime.now().year &&
-        date.month == DateTime.now().month &&
-        date.day == DateTime.now().day;
-
-    if (!isToday) {
-      _workTimer?.cancel();
-      _breakTimer?.cancel();
+    // Prevent duplicate loads
+    if (_isLoadingAttendance) {
+      AppLogger.debug('CLOCKIN_SCREEN: Already loading attendance, skipping...');
+      return;
     }
 
-    final empId =
-        widget.userData?['emp_id'] ?? widget.userData?['empId'] ?? 'EMP001';
-    final token = widget.token ?? '';
+    _isLoadingAttendance = true;
+    
+    try {
+      AppLogger.info(
+        '=== CLOCKIN_SCREEN: Loading attendance for date: $date ===',
+      );
 
-    AppLogger.debug('CLOCKIN_SCREEN: empId = $empId, date = $date');
+      // Stop timers when loading different date
+      final isToday =
+          date.year == DateTime.now().year &&
+          date.month == DateTime.now().month &&
+          date.day == DateTime.now().day;
 
-    // Dispatch BLoC event instead of HTTP call
-    context.read<AttendanceBloc>().add(
-      LoadTodayAttendance(token: token, empId: empId, date: date),
-    );
+      if (!isToday) {
+        _workTimer?.cancel();
+        _breakTimer?.cancel();
+      }
+
+      AppLogger.debug('CLOCKIN_SCREEN: userData = ${widget.userData}');
+      final empId = widget.userData?['employee_id'] ?? 
+                    widget.userData?['emp_id'] ?? 
+                    widget.userData?['empId'];
+      final token = widget.token ?? '';
+
+      if (empId == null) {
+        AppLogger.error('CLOCKIN_SCREEN: No employee ID found in userData!');
+        _isLoadingAttendance = false;
+        if (mounted) {
+          SnackBarUtil.showError(context, 'Error: Employee ID not found');
+        }
+        return;
+      }
+
+      if (token.isEmpty) {
+        AppLogger.error('CLOCKIN_SCREEN: No token found!');
+        _isLoadingAttendance = false;
+        if (mounted) {
+          SnackBarUtil.showError(context, 'Authentication error - please login again');
+        }
+        return;
+      }
+
+      AppLogger.debug('CLOCKIN_SCREEN: empId = $empId, date = $date');
+
+      // Dispatch BLoC event instead of HTTP call
+      context.read<AttendanceBloc>().add(
+        LoadTodayAttendance(token: token, empId: empId, date: date),
+      );
+      
+      // Reset flag after a short delay to allow new loads if needed
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          setState(() {
+            _isLoadingAttendance = false;
+          });
+        }
+      });
+    } catch (e, stackTrace) {
+      AppLogger.error('Error in _loadAttendance: $e');
+      AppLogger.debug('Stack trace: $stackTrace');
+      _isLoadingAttendance = false;
+      if (mounted) {
+        SnackBarUtil.showError(context, 'Error loading attendance data');
+      }
+    }
   }
 
   String _formatTime(DateTime dateTime) {
@@ -161,9 +222,16 @@ class _ClockInScreenState extends State<ClockInScreen> {
 
   void _handleClockIn() {
     AppLogger.info('=== CLOCKIN_SCREEN: Handle Clock In ===');
-    final empId =
-        widget.userData?['emp_id'] ?? widget.userData?['empId'] ?? 'EMP001';
+    final empId = widget.userData?['employee_id'] ?? 
+                  widget.userData?['emp_id'] ?? 
+                  widget.userData?['empId'];
     final token = widget.token ?? '';
+    
+    if (empId == null) {
+      AppLogger.error('CLOCKIN_SCREEN: No employee ID found for clock in!');
+      return;
+    }
+    
     AppLogger.debug('CLOCKIN_SCREEN ClockIn: empId = $empId');
 
     // Dispatch BLoC event
@@ -172,9 +240,16 @@ class _ClockInScreenState extends State<ClockInScreen> {
 
   void _handleClockOut() {
     AppLogger.info('=== CLOCKIN_SCREEN: Handle Clock Out ===');
-    final empId =
-        widget.userData?['emp_id'] ?? widget.userData?['empId'] ?? 'EMP001';
+    final empId = widget.userData?['employee_id'] ?? 
+                  widget.userData?['emp_id'] ?? 
+                  widget.userData?['empId'];
     final token = widget.token ?? '';
+    
+    if (empId == null) {
+      AppLogger.error('CLOCKIN_SCREEN: No employee ID found for clock out!');
+      return;
+    }
+    
     AppLogger.debug('CLOCKIN_SCREEN ClockOut: empId = $empId');
 
     // Dispatch BLoC event
@@ -182,9 +257,15 @@ class _ClockInScreenState extends State<ClockInScreen> {
   }
 
   void _handleBreak() {
-    final empId =
-        widget.userData?['emp_id'] ?? widget.userData?['empId'] ?? 'EMP001';
+    final empId = widget.userData?['employee_id'] ?? 
+                  widget.userData?['emp_id'] ?? 
+                  widget.userData?['empId'];
     final token = widget.token ?? '';
+    
+    if (empId == null) {
+      AppLogger.error('CLOCKIN_SCREEN: No employee ID found for break operation!');
+      return;
+    }
 
     if (isOnBreak) {
       // End break - Dispatch BLoC event
@@ -231,11 +312,9 @@ class _ClockInScreenState extends State<ClockInScreen> {
       listener: (context, state) {
         // Handle operation success
         if (state is AttendanceOperationSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.green,
-            ),
+          SnackBarUtil.showSuccess(
+            context,
+            state.message,
           );
 
           // Update UI based on successful operation
@@ -275,15 +354,19 @@ class _ClockInScreenState extends State<ClockInScreen> {
 
         // Handle errors
         if (state is AttendanceError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-          );
+          SnackBarUtil.showError(context, state.message);
+          // Reset loading flag on error
+          setState(() {
+            _isLoadingAttendance = false;
+            isLoading = false;
+          });
         }
 
         // Handle loaded state
         if (state is AttendanceLoaded) {
           setState(() {
             isLoading = false;
+            _isLoadingAttendance = false; // Reset loading flag
 
             // Check if viewing today
             final isToday =
@@ -430,7 +513,10 @@ class _ClockInScreenState extends State<ClockInScreen> {
       );
     } else if (selectedNavIndex == 3) {
       pageBody = SafeArea(
-        child: ProfilePage(onBack: () => setState(() => selectedNavIndex = 0)),
+        child: ProfilePage(
+          onBack: () => setState(() => selectedNavIndex = 0),
+          userData: widget.userData ?? {},
+        ),
       );
     } else {
       // Home icon (index 0) -> Clock-in screen
@@ -438,13 +524,18 @@ class _ClockInScreenState extends State<ClockInScreen> {
         child: Column(
           children: [
             // Header
-            UserHeader(
-              name: widget.userData?['name'] ?? 'Employee',
-              role:
-                  widget.userData?['designation'] ??
-                  widget.userData?['department'] ??
-                  'Staff',
-              onNotificationTap: () {},
+            Builder(
+              builder: (context) {
+                final authState = context.watch<AuthBloc>().state;
+                final designation = authState is AuthAuthenticated
+                    ? authState.user.designation ?? 'Staff'
+                    : 'Staff';
+                return UserHeader(
+                  name: widget.userData?['name'] ?? 'Employee',
+                  role: designation,
+                  onNotificationTap: () {},
+                );
+              },
             ),
             // Calendar
             const SizedBox(height: 2),
