@@ -27,7 +27,7 @@ abstract class HolidayRemoteDataSource {
 
 class HolidayRemoteDataSourceImpl implements HolidayRemoteDataSource {
   final http.Client client;
-  
+
   String get baseUrl => ApiConfig.baseUrl;
 
   HolidayRemoteDataSourceImpl({required this.client});

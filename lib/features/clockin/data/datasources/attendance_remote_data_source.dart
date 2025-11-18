@@ -24,7 +24,7 @@ abstract class AttendanceRemoteDataSource {
 
 class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   final http.Client client;
-  
+
   String get baseUrl => ApiConfig.baseUrl;
 
   AttendanceRemoteDataSourceImpl({required this.client});

@@ -38,7 +38,7 @@ abstract class LeaveRemoteDataSource {
 
 class LeaveRemoteDataSourceImpl implements LeaveRemoteDataSource {
   final http.Client client;
-  
+
   String get baseUrl => ApiConfig.baseUrl;
 
   LeaveRemoteDataSourceImpl({required this.client});

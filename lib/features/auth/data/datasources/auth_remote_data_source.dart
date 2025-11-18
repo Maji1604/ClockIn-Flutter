@@ -10,7 +10,7 @@ abstract class AuthRemoteDataSource {
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final http.Client client;
-  
+
   String get baseUrl => ApiConfig.baseUrl;
 
   AuthRemoteDataSourceImpl({required this.client});

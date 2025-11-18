@@ -16,7 +16,7 @@ abstract class EmployeeRemoteDataSource {
 
 class EmployeeRemoteDataSourceImpl implements EmployeeRemoteDataSource {
   final http.Client client;
-  
+
   String get baseUrl => ApiConfig.baseUrl;
 
   EmployeeRemoteDataSourceImpl({required this.client});

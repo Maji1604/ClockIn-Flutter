@@ -30,16 +30,18 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
 
     try {
       final baseUrl = ApiConfig.baseUrl;
-      
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/employees'),
-        headers: {'Content-Type': 'application/json'},
-      ).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          throw Exception('Connection timeout');
-        },
-      );
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/api/employees'),
+            headers: {'Content-Type': 'application/json'},
+          )
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception('Connection timeout');
+            },
+          );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -334,7 +336,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
   ) async {
     try {
       final baseUrl = ApiConfig.baseUrl;
-      
+
       final response = await http.post(
         Uri.parse('$baseUrl/api/employees'),
         headers: {'Content-Type': 'application/json'},
@@ -407,7 +409,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
 
     try {
       final baseUrl = ApiConfig.baseUrl;
-      
+
       final response = await http.delete(
         Uri.parse('$baseUrl/api/employees/$empId'),
         headers: {'Content-Type': 'application/json'},
