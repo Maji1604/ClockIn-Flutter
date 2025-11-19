@@ -30,6 +30,7 @@ class WeekCalendar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
@@ -45,8 +46,16 @@ class WeekCalendar extends StatelessWidget {
                     startOfWeek.add(Duration(days: i)),
                     selectedDate,
                   ),
-                  onTap: () =>
-                      onDateSelected?.call(startOfWeek.add(Duration(days: i))),
+                  isFutureDate: startOfWeek
+                      .add(Duration(days: i))
+                      .isAfter(today),
+                  onTap: () {
+                    final selectedDay = startOfWeek.add(Duration(days: i));
+                    // Only allow selecting today or past dates
+                    if (!selectedDay.isAfter(today)) {
+                      onDateSelected?.call(selectedDay);
+                    }
+                  },
                   height: height,
                   borderRadius: borderRadius,
                   chipPadding: chipPadding,
@@ -70,6 +79,7 @@ class WeekCalendar extends StatelessWidget {
 class _DayChip extends StatelessWidget {
   final DateTime date;
   final bool isSelected;
+  final bool isFutureDate;
   final VoidCallback onTap;
   final double height;
   final double borderRadius;
@@ -81,6 +91,7 @@ class _DayChip extends StatelessWidget {
   const _DayChip({
     required this.date,
     required this.isSelected,
+    required this.isFutureDate,
     required this.onTap,
     required this.height,
     required this.borderRadius,
@@ -103,15 +114,23 @@ class _DayChip extends StatelessWidget {
       'Sun',
     ][date.weekday - 1];
     return GestureDetector(
-      onTap: onTap,
+      onTap: isFutureDate ? null : onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         height: height,
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surfaceLight,
+          color: isFutureDate
+              ? AppColors.surfaceLight.withValues(alpha: 0.5)
+              : isSelected
+              ? AppColors.primary
+              : AppColors.surfaceLight,
           borderRadius: BorderRadius.circular(borderRadius),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.borderLight,
+            color: isFutureDate
+                ? AppColors.borderLight.withValues(alpha: 0.5)
+                : isSelected
+                ? AppColors.primary
+                : AppColors.borderLight,
           ),
         ),
         padding: EdgeInsets.symmetric(vertical: chipPadding),
@@ -125,7 +144,9 @@ class _DayChip extends StatelessWidget {
                 style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w600,
                   fontSize: dayNumberFontSize,
-                  color: isSelected
+                  color: isFutureDate
+                      ? AppColors.textSecondary.withValues(alpha: 0.4)
+                      : isSelected
                       ? AppColors.textOnPrimary
                       : AppColors.textSecondary,
                 ),
@@ -140,7 +161,9 @@ class _DayChip extends StatelessWidget {
                   fontSize: dayLabelFontSize,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 0.2,
-                  color: isSelected
+                  color: isFutureDate
+                      ? AppColors.textSecondary.withValues(alpha: 0.4)
+                      : isSelected
                       ? AppColors.textOnPrimary
                       : AppColors.textSecondary,
                 ),

@@ -2,16 +2,8 @@ import 'package:logger/logger.dart';
 
 /// Centralized logger for the application
 class AppLogger {
-  static final Logger _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 2,
-      errorMethodCount: 8,
-      lineLength: 120,
-      colors: true,
-      printEmojis: true,
-      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
-    ),
-  );
+  // Use SimplePrinter to ensure single-line logs (compact, no boxes)
+  static final Logger _logger = Logger(printer: SimplePrinter(printTime: true));
 
   /// Log debug messages
   static void debug(dynamic message, [dynamic error, StackTrace? stackTrace]) {

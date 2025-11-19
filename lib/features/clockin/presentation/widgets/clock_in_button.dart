@@ -242,78 +242,137 @@ class _ClockInButtonState extends State<ClockInButton>
       );
     }
 
+    // New layout: when clocked in and break controls available, show a top row
+    // of two rectangular buttons (Take Break / End Break) above the swipe track.
+    // Only one is enabled at a time depending on isOnBreak state.
+    if (showBreak) {
+      return Container(
+        margin: EdgeInsets.only(bottom: widget.bottomMargin),
+        width: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _RectBreakButton(
+                    label: 'Take Break',
+                    enabled: !widget.isOnBreak,
+                    primary: true,
+                    onTap: !widget.isOnBreak ? widget.onBreak! : null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _RectBreakButton(
+                    label: 'End Break',
+                    enabled: widget.isOnBreak,
+                    primary: false,
+                    onTap: widget.isOnBreak ? widget.onBreak! : null,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            buildSwipeTrack(context),
+          ],
+        ),
+      );
+    }
+
+    // Fallback layout (no break controls yet)
     return Container(
       margin: EdgeInsets.only(bottom: widget.bottomMargin),
       width: double.infinity,
-      child: Row(
-        children: [
-          Expanded(child: buildSwipeTrack(context)),
-          if (showBreak) ...[
-            const SizedBox(width: 10),
-            _BreakButton(
-              size: widget.breakButtonSize,
-              label: widget.isOnBreak ? 'End\nBreak' : widget.breakLabel,
-              onTap: widget.onBreak!,
-              color: widget.isOnBreak
-                  ? AppColors.error
-                  : (widget.breakColor ?? AppColors.accent),
-              textStyle: widget.breakTextStyle,
-            ),
-          ],
-        ],
-      ),
+      child: buildSwipeTrack(context),
     );
   }
 }
 
-class _BreakButton extends StatelessWidget {
-  final double size;
+class _RectBreakButton extends StatelessWidget {
   final String label;
-  final VoidCallback onTap;
-  final Color color;
-  final TextStyle? textStyle;
+  final bool enabled;
+  final bool primary; // differentiates styling of the two buttons
+  final VoidCallback? onTap;
 
-  const _BreakButton({
-    required this.size,
+  const _RectBreakButton({
     required this.label,
-    required this.onTap,
-    required this.color,
-    this.textStyle,
+    required this.enabled,
+    required this.primary,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
+    final Color activeColor = primary ? AppColors.accent : AppColors.error;
+    final bgColor = enabled ? activeColor : theme.colorScheme.surfaceVariant;
+    final fgColor = enabled
+        ? AppColors.textOnPrimary
+        : AppColors.textSecondary.withValues(alpha: 0.6);
+
+    // Cup icon representing break actions.
+    const IconData cupIcon = Icons.free_breakfast;
+    final iconTint = enabled
+        ? (primary ? AppColors.accent : AppColors.error).withValues(alpha: 0.95)
+        : AppColors.textSecondary.withValues(alpha: 0.5);
+
+    Widget leadingIconBox() {
+      return Container(
+        width: 34,
+        height: 34,
         decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
-              color: AppColors.textPrimary.withValues(alpha: 0.15),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
+              color: AppColors.textPrimary.withValues(alpha: 0.08),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        child: FittedBox(
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style:
-                textStyle ??
-                theme.textTheme.labelMedium?.copyWith(
-                  color: AppColors.textOnPrimary,
-                  fontWeight: FontWeight.w600,
-                  height: 1.05,
-                  letterSpacing: 0.2,
+        child: Center(child: Icon(cupIcon, size: 20, color: iconTint)),
+      );
+    }
+
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 150),
+      opacity: enabled ? 1.0 : 0.65,
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              if (enabled)
+                BoxShadow(
+                  color: AppColors.textPrimary.withValues(alpha: 0.12),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
                 ),
+            ],
+          ),
+          child: Row(
+            children: [
+              leadingIconBox(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: fgColor,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

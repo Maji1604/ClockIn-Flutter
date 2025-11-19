@@ -161,6 +161,10 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
       return;
     }
 
+    AppLogger.debug(
+      'ONBOARDING: Using token passed from login: ${token != null ? "present" : "null"}',
+    );
+
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (context) => ClockInScreen(
@@ -169,6 +173,7 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
             'name': user.name,
             'employee_id': user.employeeId,
           },
+          token: token,
         ),
       ),
       (route) => false, // Remove all previous routes
@@ -187,10 +192,7 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
           AppLogger.debug('LOGIN: User authenticated - ${state.user.name}');
 
           // Show success message
-          SnackBarUtil.showSuccess(
-            context,
-            'Welcome back ${state.user.name}!',
-          );
+          SnackBarUtil.showSuccess(context, 'Welcome back ${state.user.name}!');
 
           // Check if employee needs onboarding
           if (state.user.isEmployee && state.user.needsOnboarding) {
@@ -230,6 +232,21 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
             return;
           }
 
+          // Get token for navigation
+          AppLogger.debug('LOGIN: Getting token for direct navigation...');
+          final authBloc2 = context.read<AuthBloc>();
+          final navigationToken = await authBloc2.authRepository.getToken();
+          AppLogger.debug(
+            'LOGIN: Navigation token retrieved: ${navigationToken != null ? "YES" : "NO"}',
+          );
+
+          if (!context.mounted) {
+            AppLogger.debug(
+              'LOGIN: Context not mounted before direct navigation',
+            );
+            return;
+          }
+
           // Navigate to appropriate screen based on role
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
@@ -247,6 +264,7 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
                         'name': state.user.name,
                         'employee_id': state.user.employeeId,
                       },
+                      token: navigationToken,
                     ),
             ),
             (route) => false, // Remove all previous routes

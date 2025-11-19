@@ -49,7 +49,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AppLogger.info('=== AUTH BLOC: _onLogoutRequested ===');
     AppLogger.debug('AUTH BLOC: Calling authRepository.logout...');
     await authRepository.logout();
-    AppLogger.debug('AUTH BLOC: Logout complete, emitting AuthUnauthenticated...');
+    AppLogger.debug(
+      'AUTH BLOC: Logout complete, emitting AuthUnauthenticated...',
+    );
     emit(AuthUnauthenticated());
     AppLogger.debug('AUTH BLOC: AuthUnauthenticated emitted');
   }

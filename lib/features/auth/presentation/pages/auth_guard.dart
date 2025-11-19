@@ -6,7 +6,8 @@ import '../../../clockin/presentation/pages/clockin_screen.dart';
 import '../../../admin/presentation/pages/admin_dashboard.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_state.dart';
-import 'role_selection_page.dart';
+import 'splash_screen.dart';
+import 'unified_login_page.dart';
 
 /// AuthGuard checks authentication status and routes to appropriate screen
 class AuthGuard extends StatefulWidget {
@@ -18,11 +19,20 @@ class AuthGuard extends StatefulWidget {
 
 class _AuthGuardState extends State<AuthGuard> {
   String? _token;
+  bool _splashComplete = false;
 
   @override
   void initState() {
     super.initState();
     _loadToken();
+    // Show splash for 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _splashComplete = true;
+        });
+      }
+    });
   }
 
   Future<void> _loadToken() async {
@@ -40,12 +50,14 @@ class _AuthGuardState extends State<AuthGuard> {
       listener: (context, state) {
         AppLogger.info('=== AUTH GUARD: State changed ===');
         AppLogger.debug('AUTH GUARD: New state: ${state.runtimeType}');
-        
+
         // When user logs out, ensure we're on the role selection page
         if (state is AuthUnauthenticated) {
-          AppLogger.debug('AUTH GUARD: User unauthenticated, should show role selection');
+          AppLogger.debug(
+            'AUTH GUARD: User unauthenticated, should show role selection',
+          );
         }
-        
+
         // Reload token when authentication state changes
         if (state is AuthAuthenticated) {
           _loadToken();
@@ -53,39 +65,15 @@ class _AuthGuardState extends State<AuthGuard> {
       },
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
-          AppLogger.debug('AUTH GUARD: Building with state: ${state.runtimeType}');
-          
-          if (state is AuthLoading || state is AuthInitial) {
-            // Show splash screen while checking auth
-            return const Scaffold(
-              backgroundColor: AppColors.primary,
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.access_time_rounded,
-                      size: 80,
-                      color: Colors.white,
-                    ),
-                    SizedBox(height: 24),
-                    Text(
-                      'ClockIn',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                    SizedBox(height: 40),
-                    CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ],
-                ),
-              ),
-            );
+          AppLogger.debug(
+            'AUTH GUARD: Building with state: ${state.runtimeType}',
+          );
+
+          if (state is AuthLoading ||
+              state is AuthInitial ||
+              !_splashComplete) {
+            // Show splash screen while checking auth or during 3-second delay
+            return const SplashScreen();
           }
 
           if (state is AuthAuthenticated) {
@@ -99,9 +87,13 @@ class _AuthGuardState extends State<AuthGuard> {
                 },
               );
             } else {
-              AppLogger.debug('AUTH GUARD: Creating ClockInScreen with token: ${_token != null ? "present" : "missing"}');
+              AppLogger.debug(
+                'AUTH GUARD: Creating ClockInScreen with token: ${_token != null ? "present" : "missing"}',
+              );
               return ClockInScreen(
-                key: const ValueKey('clockin_screen'), // Add key to prevent recreation
+                key: const ValueKey(
+                  'clockin_screen',
+                ), // Add key to prevent recreation
                 userData: {
                   'id': state.user.id,
                   'name': state.user.name,
@@ -112,8 +104,8 @@ class _AuthGuardState extends State<AuthGuard> {
             }
           }
 
-          // User is not authenticated, show role selection
-          return const RoleSelectionPage();
+          // User is not authenticated, show login page
+          return const UnifiedLoginPage();
         },
       ),
     );

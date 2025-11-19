@@ -25,9 +25,11 @@ class AdminDashboard extends StatelessWidget {
       listener: (context, state) {
         AppLogger.info('=== ADMIN DASHBOARD: AuthBloc state changed ===');
         AppLogger.debug('ADMIN DASHBOARD: New state: ${state.runtimeType}');
-        
+
         if (state is AuthUnauthenticated) {
-          AppLogger.info('=== ADMIN DASHBOARD: User logged out, navigating to role selection ===');
+          AppLogger.info(
+            '=== ADMIN DASHBOARD: User logged out, navigating to role selection ===',
+          );
           // Navigate to role selection page and clear navigation stack
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const RoleSelectionPage()),
@@ -36,165 +38,173 @@ class AdminDashboard extends StatelessWidget {
         }
       },
       child: Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            onPressed: () {
-              AppLogger.info('=== ADMIN DASHBOARD: Logout button pressed ===');
-              // Show logout confirmation dialog
-              showDialog(
-                context: context,
-                builder: (dialogContext) => AlertDialog(
-                  title: const Text('Logout'),
-                  content: const Text('Are you sure you want to logout?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        AppLogger.debug('ADMIN DASHBOARD: Logout cancelled');
-                        Navigator.of(dialogContext).pop();
-                      },
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        AppLogger.info('=== ADMIN DASHBOARD: Logout confirmed ===');
-                        Navigator.of(dialogContext).pop();
-                        // Dispatch logout event
-                        AppLogger.debug('ADMIN DASHBOARD: Dispatching LogoutRequested event...');
-                        context.read<AuthBloc>().add(LogoutRequested());
-                        AppLogger.debug('ADMIN DASHBOARD: LogoutRequested event dispatched');
-                      },
-                      child: const Text(
-                        'Logout',
-                        style: TextStyle(color: Colors.red),
+        backgroundColor: AppColors.surface,
+        appBar: AppBar(
+          title: const Text('Admin Dashboard'),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          actions: [
+            IconButton(
+              onPressed: () {
+                AppLogger.info(
+                  '=== ADMIN DASHBOARD: Logout button pressed ===',
+                );
+                // Show logout confirmation dialog
+                showDialog(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: const Text('Logout'),
+                    content: const Text('Are you sure you want to logout?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          AppLogger.debug('ADMIN DASHBOARD: Logout cancelled');
+                          Navigator.of(dialogContext).pop();
+                        },
+                        child: const Text('Cancel'),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Welcome, Admin!',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Manage your organization',
-              style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 40),
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.1,
-                children: [
-                  _DashboardCard(
-                    icon: Icons.people_rounded,
-                    title: 'Employees',
-                    description: 'Manage employees',
-                    color: AppColors.primary,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const EmployeeManagementScreen(),
+                      TextButton(
+                        onPressed: () {
+                          AppLogger.info(
+                            '=== ADMIN DASHBOARD: Logout confirmed ===',
+                          );
+                          Navigator.of(dialogContext).pop();
+                          // Dispatch logout event
+                          AppLogger.debug(
+                            'ADMIN DASHBOARD: Dispatching LogoutRequested event...',
+                          );
+                          context.read<AuthBloc>().add(LogoutRequested());
+                          AppLogger.debug(
+                            'ADMIN DASHBOARD: LogoutRequested event dispatched',
+                          );
+                        },
+                        child: const Text(
+                          'Logout',
+                          style: TextStyle(color: Colors.red),
                         ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
-                  _DashboardCard(
-                    icon: Icons.access_time_rounded,
-                    title: 'Attendance',
-                    description: 'View attendance',
-                    color: AppColors.accent,
-                    onTap: () {
-                      // TODO: Navigate to attendance screen
-                    },
-                  ),
-                  _DashboardCard(
-                    icon: Icons.event_note_rounded,
-                    title: 'Leaves',
-                    description: 'Manage leaves',
-                    color: const Color(0xFFEF4444),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => AdminLeaveManagementScreen(
-                            adminData: adminData ?? {},
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  _DashboardCard(
-                    icon: Icons.calendar_month_rounded,
-                    title: 'Holidays',
-                    description: 'Manage holidays',
-                    color: const Color(0xFF10B981),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => BlocProvider(
-                            create: (context) => HolidayBloc(
-                              repository: HolidayRepository(
-                                remoteDataSource: HolidayRemoteDataSourceImpl(
-                                  client: http.Client(),
-                                ),
-                              ),
-                            ),
-                            child: AdminHolidayManagementPage(
-                              onBack: () => Navigator.of(context).pop(),
-                              userData: adminData ?? {},
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  _DashboardCard(
-                    icon: Icons.insert_chart_rounded,
-                    title: 'Reports',
-                    description: 'Generate reports',
-                    color: const Color(0xFF9333EA),
-                    onTap: () {
-                      // TODO: Navigate to reports screen
-                    },
-                  ),
-                  _DashboardCard(
-                    icon: Icons.settings_rounded,
-                    title: 'Settings',
-                    description: 'App settings',
-                    color: const Color(0xFF64748B),
-                    onTap: () {
-                      // TODO: Navigate to settings screen
-                    },
-                  ),
-                ],
-              ),
+                );
+              },
+              icon: const Icon(Icons.logout),
+              tooltip: 'Logout',
             ),
           ],
         ),
-      ),
+        body: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Welcome, Admin!',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Manage your organization',
+                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 40),
+              Expanded(
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 1.1,
+                  children: [
+                    _DashboardCard(
+                      icon: Icons.people_rounded,
+                      title: 'Employees',
+                      description: 'Manage employees',
+                      color: AppColors.primary,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const EmployeeManagementScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _DashboardCard(
+                      icon: Icons.access_time_rounded,
+                      title: 'Attendance',
+                      description: 'View attendance',
+                      color: AppColors.accent,
+                      onTap: () {
+                        // TODO: Navigate to attendance screen
+                      },
+                    ),
+                    _DashboardCard(
+                      icon: Icons.event_note_rounded,
+                      title: 'Leaves',
+                      description: 'Manage leaves',
+                      color: const Color(0xFFEF4444),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => AdminLeaveManagementScreen(
+                              adminData: adminData ?? {},
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    _DashboardCard(
+                      icon: Icons.calendar_month_rounded,
+                      title: 'Holidays',
+                      description: 'Manage holidays',
+                      color: const Color(0xFF10B981),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => BlocProvider(
+                              create: (context) => HolidayBloc(
+                                repository: HolidayRepository(
+                                  remoteDataSource: HolidayRemoteDataSourceImpl(
+                                    client: http.Client(),
+                                  ),
+                                ),
+                              ),
+                              child: AdminHolidayManagementPage(
+                                onBack: () => Navigator.of(context).pop(),
+                                userData: adminData ?? {},
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    _DashboardCard(
+                      icon: Icons.insert_chart_rounded,
+                      title: 'Reports',
+                      description: 'Generate reports',
+                      color: const Color(0xFF9333EA),
+                      onTap: () {
+                        // TODO: Navigate to reports screen
+                      },
+                    ),
+                    _DashboardCard(
+                      icon: Icons.settings_rounded,
+                      title: 'Settings',
+                      description: 'App settings',
+                      color: const Color(0xFF64748B),
+                      onTap: () {
+                        // TODO: Navigate to settings screen
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ), // End of BlocListener child (Scaffold)
     ); // End of BlocListener
   }

@@ -10,33 +10,36 @@ import 'features/auth/presentation/bloc/auth_event.dart';
 
 void main() async {
   // Catch all errors at the Flutter framework level
-  runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
 
-    // Set up error handlers
-    FlutterError.onError = (FlutterErrorDetails details) {
-      AppLogger.error('Flutter Error: ${details.exception}');
-      AppLogger.debug('Stack trace: ${details.stack}');
-    };
+      // Set up error handlers
+      FlutterError.onError = (FlutterErrorDetails details) {
+        AppLogger.error('Flutter Error: ${details.exception}');
+        AppLogger.debug('Stack trace: ${details.stack}');
+      };
 
-    // Initialize API configuration
-    await ApiConfig.initialize();
+      // Initialize API configuration
+      await ApiConfig.initialize();
 
-    // Initialize theme manager
-    await ThemeManager().initialize();
+      // Initialize theme manager
+      await ThemeManager().initialize();
 
-    // Initialize dependencies
-    await initializeDependencies();
+      // Initialize dependencies
+      await initializeDependencies();
 
-    // Setup service locator for BLoC
-    ServiceLocator.setup();
+      // Setup service locator for BLoC
+      ServiceLocator.setup();
 
-    runApp(const ClockInApp());
-  }, (error, stack) {
-    // Catch all Dart errors
-    AppLogger.error('Uncaught error: $error');
-    AppLogger.debug('Stack trace: $stack');
-  });
+      runApp(const ClockInApp());
+    },
+    (error, stack) {
+      // Catch all Dart errors
+      AppLogger.error('Uncaught error: $error');
+      AppLogger.debug('Stack trace: $stack');
+    },
+  );
 }
 
 class ClockInApp extends StatelessWidget {

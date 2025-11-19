@@ -99,10 +99,7 @@ class _MyProfileDetailPageState extends State<MyProfileDetailPage>
         } else if (state is ProfileError) {
           SnackBarUtil.showError(context, state.message);
         } else if (state is ProfileUpdated) {
-          SnackBarUtil.showSuccess(
-            context,
-            'Profile updated successfully',
-          );
+          SnackBarUtil.showSuccess(context, 'Profile updated successfully');
         }
       },
       child: BlocBuilder<ProfileBloc, ProfileState>(

@@ -33,9 +33,11 @@ class _ProfilePageState extends State<ProfilePage> {
       listener: (context, state) {
         AppLogger.info('=== PROFILE PAGE: AuthBloc state changed ===');
         AppLogger.debug('PROFILE PAGE: New state: ${state.runtimeType}');
-        
+
         if (state is AuthUnauthenticated) {
-          AppLogger.info('=== PROFILE PAGE: User logged out, navigating to role selection ===');
+          AppLogger.info(
+            '=== PROFILE PAGE: User logged out, navigating to role selection ===',
+          );
           // Navigate to role selection page and clear navigation stack
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const RoleSelectionPage()),
@@ -164,7 +166,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: ElevatedButton(
                           onPressed: () {
                             // Handle edit profile
-                            SnackBarUtil.showInfo(context, 'Edit Profile tapped');
+                            SnackBarUtil.showInfo(
+                              context,
+                              'Edit Profile tapped',
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4A90E2),
@@ -234,7 +239,9 @@ class _ProfilePageState extends State<ProfilePage> {
                             icon: Icons.logout,
                             title: 'Log out',
                             onTap: () {
-                              AppLogger.info('=== PROFILE PAGE: Logout button pressed ===');
+                              AppLogger.info(
+                                '=== PROFILE PAGE: Logout button pressed ===',
+                              );
                               // Show confirmation dialog
                               showDialog(
                                 context: context,
@@ -246,21 +253,29 @@ class _ProfilePageState extends State<ProfilePage> {
                                   actions: [
                                     TextButton(
                                       onPressed: () {
-                                        AppLogger.debug('PROFILE PAGE: Logout cancelled');
+                                        AppLogger.debug(
+                                          'PROFILE PAGE: Logout cancelled',
+                                        );
                                         Navigator.of(dialogContext).pop();
                                       },
                                       child: const Text('Cancel'),
                                     ),
                                     TextButton(
                                       onPressed: () {
-                                        AppLogger.info('=== PROFILE PAGE: Logout confirmed ===');
+                                        AppLogger.info(
+                                          '=== PROFILE PAGE: Logout confirmed ===',
+                                        );
                                         Navigator.of(dialogContext).pop();
                                         // Dispatch logout event
-                                        AppLogger.debug('PROFILE PAGE: Dispatching LogoutRequested event...');
+                                        AppLogger.debug(
+                                          'PROFILE PAGE: Dispatching LogoutRequested event...',
+                                        );
                                         context.read<AuthBloc>().add(
                                           LogoutRequested(),
                                         );
-                                        AppLogger.debug('PROFILE PAGE: LogoutRequested event dispatched');
+                                        AppLogger.debug(
+                                          'PROFILE PAGE: LogoutRequested event dispatched',
+                                        );
                                       },
                                       child: const Text(
                                         'Logout',

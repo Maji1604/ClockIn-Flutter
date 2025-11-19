@@ -4,6 +4,7 @@ import 'attendance_event.dart';
 import 'attendance_state.dart';
 
 import '../../../../core/utils/app_logger.dart';
+
 class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
   final AttendanceRepository attendanceRepository;
 
@@ -22,7 +23,9 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
     Emitter<AttendanceState> emit,
   ) async {
     AppLogger.info('=== BLOC LOAD TODAY ATTENDANCE START ===');
-    AppLogger.debug('BLoC Load attendance - empId: ${event.empId}, date: ${event.date}');
+    AppLogger.debug(
+      'BLoC Load attendance - empId: ${event.empId}, date: ${event.date}',
+    );
     emit(AttendanceLoading());
     try {
       AppLogger.debug('Fetching today attendance...');
@@ -71,13 +74,37 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
       );
       AppLogger.debug('Emitted AttendanceOperationSuccess, reloading data...');
       // Reload data
-      add(LoadTodayAttendance(token: event.token, empId: event.empId));
-    } catch (e, stackTrace) {
-      AppLogger.info('=== BLOC CLOCK-IN ERROR ===');
-      AppLogger.debug('Error type: ${e.runtimeType}');
-      AppLogger.debug('Error message: $e');
-      AppLogger.debug('Stack trace: $stackTrace');
-      emit(AttendanceError(e.toString()));
+      add(
+        LoadTodayAttendance(
+          token: event.token,
+          empId: event.empId,
+          date: DateTime.now(),
+        ),
+      );
+    } catch (e) {
+      AppLogger.info('=== BLOC CLOCK-IN ERROR: ${e.runtimeType} ===');
+
+      // Extract clean error message
+      String errorMessage = e.toString();
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.substring('Exception: '.length);
+      }
+      // Remove nested "Exception: " prefixes
+      while (errorMessage.contains('Exception: ')) {
+        errorMessage = errorMessage.replaceAll('Exception: ', '');
+      }
+
+      emit(AttendanceError(errorMessage));
+
+      // Reload attendance data to sync UI state with backend
+      AppLogger.debug('Reloading attendance data after error...');
+      add(
+        LoadTodayAttendance(
+          token: event.token,
+          empId: event.empId,
+          date: DateTime.now(),
+        ),
+      );
     }
   }
 
@@ -94,7 +121,9 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
         event.token,
         event.empId,
       );
-      AppLogger.debug('Repository clockOut successful, attendance: $attendance');
+      AppLogger.debug(
+        'Repository clockOut successful, attendance: $attendance',
+      );
       emit(
         AttendanceOperationSuccess(
           message: 'Clocked out successfully',
@@ -103,13 +132,37 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
       );
       AppLogger.debug('Emitted AttendanceOperationSuccess, reloading data...');
       // Reload data
-      add(LoadTodayAttendance(token: event.token, empId: event.empId));
-    } catch (e, stackTrace) {
-      AppLogger.info('=== BLOC CLOCK-OUT ERROR ===');
-      AppLogger.debug('Error type: ${e.runtimeType}');
-      AppLogger.debug('Error message: $e');
-      AppLogger.debug('Stack trace: $stackTrace');
-      emit(AttendanceError(e.toString()));
+      add(
+        LoadTodayAttendance(
+          token: event.token,
+          empId: event.empId,
+          date: DateTime.now(),
+        ),
+      );
+    } catch (e) {
+      AppLogger.info('=== BLOC CLOCK-OUT ERROR: ${e.runtimeType} ===');
+
+      // Extract clean error message
+      String errorMessage = e.toString();
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.substring('Exception: '.length);
+      }
+      // Remove nested "Exception: " prefixes
+      while (errorMessage.contains('Exception: ')) {
+        errorMessage = errorMessage.replaceAll('Exception: ', '');
+      }
+
+      emit(AttendanceError(errorMessage));
+
+      // Reload attendance data to sync UI state with backend
+      AppLogger.debug('Reloading attendance data after error...');
+      add(
+        LoadTodayAttendance(
+          token: event.token,
+          empId: event.empId,
+          date: DateTime.now(), // Explicitly pass today's date
+        ),
+      );
     }
   }
 
@@ -119,12 +172,40 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
   ) async {
     emit(AttendanceLoading());
     try {
-      await attendanceRepository.startBreak(event.token, event.empId);
-      emit(const AttendanceOperationSuccess(message: 'Break started'));
-      // Reload data
-      add(LoadTodayAttendance(token: event.token, empId: event.empId));
+      final attendance = await attendanceRepository.startBreak(
+        event.token,
+        event.empId,
+      );
+      emit(
+        AttendanceOperationSuccess(
+          message: 'Break started',
+          attendance: attendance,
+        ),
+      );
+      // Refresh activities
+      add(
+        LoadActivities(
+          token: event.token,
+          empId: event.empId,
+          date: DateTime.now(),
+        ),
+      );
     } catch (e) {
-      emit(AttendanceError(e.toString()));
+      String errorMessage = e.toString();
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.substring('Exception: '.length);
+      }
+      while (errorMessage.contains('Exception: ')) {
+        errorMessage = errorMessage.replaceAll('Exception: ', '');
+      }
+      emit(AttendanceError(errorMessage));
+      add(
+        LoadTodayAttendance(
+          token: event.token,
+          empId: event.empId,
+          date: DateTime.now(),
+        ),
+      );
     }
   }
 
@@ -134,12 +215,41 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
   ) async {
     emit(AttendanceLoading());
     try {
-      await attendanceRepository.endBreak(event.token, event.empId);
-      emit(const AttendanceOperationSuccess(message: 'Break ended'));
-      // Reload data
-      add(LoadTodayAttendance(token: event.token, empId: event.empId));
+      final attendance = await attendanceRepository.endBreak(
+        event.token,
+        event.empId,
+      );
+      emit(
+        AttendanceOperationSuccess(
+          message: 'Break ended',
+          attendance: attendance,
+        ),
+      );
+      // Refresh only activities to avoid racing an attendance reload
+      add(
+        LoadActivities(
+          token: event.token,
+          empId: event.empId,
+          date: DateTime.now(),
+        ),
+      );
     } catch (e) {
-      emit(AttendanceError(e.toString()));
+      String errorMessage = e.toString();
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.substring('Exception: '.length);
+      }
+      while (errorMessage.contains('Exception: ')) {
+        errorMessage = errorMessage.replaceAll('Exception: ', '');
+      }
+      emit(AttendanceError(errorMessage));
+      // Keep attendance as-is on error; still refresh activities for visibility
+      add(
+        LoadActivities(
+          token: event.token,
+          empId: event.empId,
+          date: DateTime.now(),
+        ),
+      );
     }
   }
 
@@ -163,7 +273,14 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
         );
       }
     } catch (e) {
-      emit(AttendanceError(e.toString()));
+      String errorMessage = e.toString();
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.substring('Exception: '.length);
+      }
+      while (errorMessage.contains('Exception: ')) {
+        errorMessage = errorMessage.replaceAll('Exception: ', '');
+      }
+      emit(AttendanceError(errorMessage));
     }
   }
 }

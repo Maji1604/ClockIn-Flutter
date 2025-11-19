@@ -10,8 +10,8 @@ abstract class AttendanceRepository {
   });
   Future<AttendanceModel> clockIn(String token, String empId);
   Future<AttendanceModel> clockOut(String token, String empId);
-  Future<void> startBreak(String token, String empId);
-  Future<void> endBreak(String token, String empId);
+  Future<AttendanceModel> startBreak(String token, String empId);
+  Future<AttendanceModel> endBreak(String token, String empId);
   Future<List<ActivityModel>> getActivities(
     String token,
     String empId, {
@@ -45,6 +45,8 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   Future<AttendanceModel> clockIn(String token, String empId) async {
     try {
       return await remoteDataSource.clockIn(token, empId);
+    } on AlreadyClockedInException {
+      rethrow; // Preserve the specific exception type
     } catch (e) {
       throw Exception('Failed to clock in: ${e.toString()}');
     }
@@ -55,25 +57,25 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     try {
       return await remoteDataSource.clockOut(token, empId);
     } catch (e) {
-      throw Exception('Failed to clock out: ${e.toString()}');
+      rethrow; // Let the original error bubble up
     }
   }
 
   @override
-  Future<void> startBreak(String token, String empId) async {
+  Future<AttendanceModel> startBreak(String token, String empId) async {
     try {
-      await remoteDataSource.startBreak(token, empId);
+      return await remoteDataSource.startBreak(token, empId);
     } catch (e) {
-      throw Exception('Failed to start break: ${e.toString()}');
+      rethrow; // Let the original error bubble up
     }
   }
 
   @override
-  Future<void> endBreak(String token, String empId) async {
+  Future<AttendanceModel> endBreak(String token, String empId) async {
     try {
-      await remoteDataSource.endBreak(token, empId);
+      return await remoteDataSource.endBreak(token, empId);
     } catch (e) {
-      throw Exception('Failed to end break: ${e.toString()}');
+      rethrow; // Let the original error bubble up
     }
   }
 
@@ -86,7 +88,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     try {
       return await remoteDataSource.getActivities(token, empId, date: date);
     } catch (e) {
-      throw Exception('Failed to fetch activities: ${e.toString()}');
+      rethrow; // Let the original error bubble up
     }
   }
 }

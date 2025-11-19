@@ -53,12 +53,13 @@ class _ClockInScreenState extends State<ClockInScreen> {
   DateTime? _clockInDateTime;
   DateTime? _breakStartDateTime;
   double _totalBreakMinutes = 0;
+  bool _isProcessingBreak = false;
 
   @override
   void initState() {
     super.initState();
     _updateTime();
-    
+
     // Wrap in try-catch to prevent crashes
     try {
       // Add a small delay to ensure widget is fully mounted
@@ -81,15 +82,17 @@ class _ClockInScreenState extends State<ClockInScreen> {
     super.dispose();
   }
 
-  void _loadAttendance(DateTime date) {
+  Future<void> _loadAttendance(DateTime date) async {
     // Prevent duplicate loads
     if (_isLoadingAttendance) {
-      AppLogger.debug('CLOCKIN_SCREEN: Already loading attendance, skipping...');
+      AppLogger.debug(
+        'CLOCKIN_SCREEN: Already loading attendance, skipping...',
+      );
       return;
     }
 
     _isLoadingAttendance = true;
-    
+
     try {
       AppLogger.info(
         '=== CLOCKIN_SCREEN: Loading attendance for date: $date ===',
@@ -107,10 +110,30 @@ class _ClockInScreenState extends State<ClockInScreen> {
       }
 
       AppLogger.debug('CLOCKIN_SCREEN: userData = ${widget.userData}');
-      final empId = widget.userData?['employee_id'] ?? 
-                    widget.userData?['emp_id'] ?? 
-                    widget.userData?['empId'];
-      final token = widget.token ?? '';
+      final empId =
+          widget.userData?['employee_id'] ??
+          widget.userData?['emp_id'] ??
+          widget.userData?['empId'];
+
+      // Try to get token from widget parameter, or fallback to AuthBloc repository
+      String? token = widget.token;
+      if (token == null || token.isEmpty) {
+        AppLogger.debug(
+          'CLOCKIN_SCREEN: Token not provided, retrieving from storage...',
+        );
+        try {
+          final authBloc = context.read<AuthBloc>();
+          token = await authBloc.authRepository.getToken();
+          AppLogger.debug(
+            'CLOCKIN_SCREEN: Token retrieved from storage: ${token != null ? "YES" : "NO"}',
+          );
+        } catch (e) {
+          AppLogger.error(
+            'CLOCKIN_SCREEN: Failed to retrieve token from storage',
+            e,
+          );
+        }
+      }
 
       if (empId == null) {
         AppLogger.error('CLOCKIN_SCREEN: No employee ID found in userData!');
@@ -121,11 +144,14 @@ class _ClockInScreenState extends State<ClockInScreen> {
         return;
       }
 
-      if (token.isEmpty) {
+      if (token == null || token.isEmpty) {
         AppLogger.error('CLOCKIN_SCREEN: No token found!');
         _isLoadingAttendance = false;
         if (mounted) {
-          SnackBarUtil.showError(context, 'Authentication error - please login again');
+          SnackBarUtil.showError(
+            context,
+            'Authentication error - please login again',
+          );
         }
         return;
       }
@@ -136,7 +162,7 @@ class _ClockInScreenState extends State<ClockInScreen> {
       context.read<AttendanceBloc>().add(
         LoadTodayAttendance(token: token, empId: empId, date: date),
       );
-      
+
       // Reset flag after a short delay to allow new loads if needed
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
@@ -185,7 +211,14 @@ class _ClockInScreenState extends State<ClockInScreen> {
           final now = DateTime.now();
           final workDuration = now.difference(_clockInDateTime!);
           final workHours = workDuration.inSeconds / 3600;
-          final netWorkHours = workHours - (_totalBreakMinutes / 60);
+          // Also subtract currently active break duration (not yet included in _totalBreakMinutes)
+          double activeBreakMinutes = 0;
+          if (isOnBreak && _breakStartDateTime != null) {
+            activeBreakMinutes =
+                now.difference(_breakStartDateTime!).inSeconds / 60;
+          }
+          final netWorkHours =
+              workHours - ((_totalBreakMinutes + activeBreakMinutes) / 60);
           workTime = _formatHours(netWorkHours);
         });
       }
@@ -193,15 +226,21 @@ class _ClockInScreenState extends State<ClockInScreen> {
   }
 
   void _startBreakTimer() {
-    _breakTimer?.cancel();
-    _breakStartDateTime = DateTime.now();
-    final startingBreakMinutes = _totalBreakMinutes; // Capture current total
+    // If timer already running, do nothing (preserve start time for continuity)
+    if (_breakTimer != null) return;
+    // Preserve existing _breakStartDateTime if we already captured it on break start
+    _breakStartDateTime ??= DateTime.now();
+    AppLogger.debug(
+      'BREAK_TIMER_START start=${_breakStartDateTime!.toIso8601String()} total_before=${_totalBreakMinutes.toStringAsFixed(2)}m',
+    );
+    final startingBreakMinutes =
+        _totalBreakMinutes; // completed breaks before current active break
     _breakTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_breakStartDateTime != null && mounted && isOnBreak) {
+        final now = DateTime.now();
+        final breakDuration = now.difference(_breakStartDateTime!);
+        final currentBreakMinutes = breakDuration.inSeconds / 60;
         setState(() {
-          final now = DateTime.now();
-          final breakDuration = now.difference(_breakStartDateTime!);
-          final currentBreakMinutes = breakDuration.inSeconds / 60;
           breakTime = _formatMinutes(
             startingBreakMinutes + currentBreakMinutes,
           );
@@ -211,8 +250,20 @@ class _ClockInScreenState extends State<ClockInScreen> {
   }
 
   void _stopBreakTimer() {
+    if (_breakStartDateTime != null) {
+      final now = DateTime.now();
+      final active = now.difference(_breakStartDateTime!).inSeconds / 60;
+      AppLogger.debug(
+        'BREAK_TIMER_STOP start=${_breakStartDateTime!.toIso8601String()} active=${active.toStringAsFixed(2)}m total_before=${_totalBreakMinutes.toStringAsFixed(2)}m',
+      );
+    } else {
+      AppLogger.debug(
+        'BREAK_TIMER_STOP no-active total_before=${_totalBreakMinutes.toStringAsFixed(2)}m',
+      );
+    }
     _breakTimer?.cancel();
     _breakStartDateTime = null;
+    _breakTimer = null;
   }
 
   void _stopWorkTimer() {
@@ -222,16 +273,16 @@ class _ClockInScreenState extends State<ClockInScreen> {
 
   void _handleClockIn() {
     AppLogger.info('=== CLOCKIN_SCREEN: Handle Clock In ===');
-    final empId = widget.userData?['employee_id'] ?? 
-                  widget.userData?['emp_id'] ?? 
-                  widget.userData?['empId'];
+    final empId =
+        widget.userData?['employee_id'] ??
+        widget.userData?['emp_id'] ??
+        widget.userData?['empId'];
     final token = widget.token ?? '';
-    
+
     if (empId == null) {
       AppLogger.error('CLOCKIN_SCREEN: No employee ID found for clock in!');
       return;
     }
-    
     AppLogger.debug('CLOCKIN_SCREEN ClockIn: empId = $empId');
 
     // Dispatch BLoC event
@@ -240,16 +291,17 @@ class _ClockInScreenState extends State<ClockInScreen> {
 
   void _handleClockOut() {
     AppLogger.info('=== CLOCKIN_SCREEN: Handle Clock Out ===');
-    final empId = widget.userData?['employee_id'] ?? 
-                  widget.userData?['emp_id'] ?? 
-                  widget.userData?['empId'];
+    final empId =
+        widget.userData?['employee_id'] ??
+        widget.userData?['emp_id'] ??
+        widget.userData?['empId'];
     final token = widget.token ?? '';
-    
+
     if (empId == null) {
       AppLogger.error('CLOCKIN_SCREEN: No employee ID found for clock out!');
       return;
     }
-    
+
     AppLogger.debug('CLOCKIN_SCREEN ClockOut: empId = $empId');
 
     // Dispatch BLoC event
@@ -257,23 +309,41 @@ class _ClockInScreenState extends State<ClockInScreen> {
   }
 
   void _handleBreak() {
-    final empId = widget.userData?['employee_id'] ?? 
-                  widget.userData?['emp_id'] ?? 
-                  widget.userData?['empId'];
+    final empId =
+        widget.userData?['employee_id'] ??
+        widget.userData?['emp_id'] ??
+        widget.userData?['empId'];
     final token = widget.token ?? '';
-    
+
     if (empId == null) {
-      AppLogger.error('CLOCKIN_SCREEN: No employee ID found for break operation!');
+      AppLogger.error(
+        'CLOCKIN_SCREEN: No employee ID found for break operation!',
+      );
       return;
     }
 
+    // Prevent double taps while processing
+    if (_isProcessingBreak) return;
+    _isProcessingBreak = true;
+
     if (isOnBreak) {
-      // End break - Dispatch BLoC event
+      // Optimistic UI: stop break timer and mark as not on break
       AppLogger.info('=== CLOCKIN_SCREEN: Ending break ===');
+      setState(() {
+        isOnBreak = false;
+        _stopBreakTimer();
+      });
+      // Dispatch BLoC event (server will return updated totals)
       context.read<AttendanceBloc>().add(EndBreak(token: token, empId: empId));
     } else {
-      // Start break - Dispatch BLoC event
+      // Optimistic UI: pause work display and start break timer immediately
       AppLogger.info('=== CLOCKIN_SCREEN: Starting break ===');
+      setState(() {
+        isOnBreak = true;
+        _breakStartDateTime ??= DateTime.now();
+        _startBreakTimer();
+      });
+      // Dispatch BLoC event
       context.read<AttendanceBloc>().add(
         StartBreak(token: token, empId: empId),
       );
@@ -312,121 +382,176 @@ class _ClockInScreenState extends State<ClockInScreen> {
       listener: (context, state) {
         // Handle operation success
         if (state is AttendanceOperationSuccess) {
-          SnackBarUtil.showSuccess(
-            context,
-            state.message,
-          );
+          if (mounted) {
+            SnackBarUtil.showSuccess(context, state.message);
 
-          // Update UI based on successful operation
-          if (state.attendance != null) {
-            setState(() {
-              final attendance = state.attendance!;
-              attendanceId = attendance.id.toString();
-              isClockedIn = attendance.isClockedIn;
-              isOnBreak = attendance.isOnBreak;
+            // Update UI based on successful operation
+            if (state.attendance != null) {
+              setState(() {
+                final attendance = state.attendance!;
+                attendanceId = attendance.id.toString();
+                isClockedIn = attendance.isClockedIn;
+                isOnBreak = attendance.isOnBreak;
 
-              if (attendance.clockInTime != null) {
-                _clockInDateTime = DateTime.parse(attendance.clockInTime!);
-                clockInTime = _formatTime(_clockInDateTime!);
-                // Start work timer if clocked in
-                if (isClockedIn) {
-                  _startWorkTimer();
+                if (attendance.clockInTime != null) {
+                  _clockInDateTime = DateTime.parse(attendance.clockInTime!);
+                  clockInTime = _formatTime(_clockInDateTime!);
+                  // Start work timer if clocked in
+                  if (isClockedIn) {
+                    _startWorkTimer();
+                  }
                 }
-              }
 
-              if (attendance.clockOutTime != null) {
-                final clockOutDateTime = DateTime.parse(
-                  attendance.clockOutTime!,
+                if (attendance.clockOutTime != null) {
+                  final clockOutDateTime = DateTime.parse(
+                    attendance.clockOutTime!,
+                  );
+                  clockOutTime = _formatTime(clockOutDateTime);
+                  _stopWorkTimer();
+                }
+
+                // Calculate break and work time from hours
+                final totalWorkHours = attendance.totalWorkHours ?? 0.0;
+                final totalBreakHours = attendance.totalBreakHours ?? 0.0;
+                _totalBreakMinutes =
+                    totalBreakHours * 60; // completed breaks only
+                breakTime = _formatMinutes(_totalBreakMinutes);
+                AppLogger.debug(
+                  'ATTENDANCE_APPLY opSuccess id=${attendance.id} isOnBreak=${attendance.isOnBreak} totalBreakHours=${totalBreakHours.toStringAsFixed(4)}h totalBreakMinutes=${_totalBreakMinutes.toStringAsFixed(2)}m totalWorkHours=${totalWorkHours.toStringAsFixed(4)}h activeBreakStart=${attendance.activeBreakStart}',
                 );
-                clockOutTime = _formatTime(clockOutDateTime);
-                _stopWorkTimer();
-              }
+                // Only overwrite workTime with backend value if user clocked out (backend finalized)
+                if (attendance.clockOutTime != null) {
+                  workTime = _formatHours(totalWorkHours);
+                }
 
-              // Calculate break and work time from hours
-              final totalWorkHours = attendance.totalWorkHours ?? 0.0;
-              final totalBreakHours = attendance.totalBreakHours ?? 0.0;
-              workTime = _formatHours(totalWorkHours);
-              _totalBreakMinutes = totalBreakHours * 60;
-              breakTime = _formatMinutes(_totalBreakMinutes);
-            });
+                // Manage break timer when operation success updates isOnBreak
+                if (isOnBreak) {
+                  // Resume break timer from server's active break start time if available
+                  if (attendance.activeBreakStart != null) {
+                    _breakStartDateTime = DateTime.parse(
+                      attendance.activeBreakStart!,
+                    );
+                  }
+                  _startBreakTimer();
+                } else {
+                  _stopBreakTimer();
+                }
+
+                // Clear processing flag after applying server truth
+                _isProcessingBreak = false;
+              });
+            } else {
+              // Even if no attendance payload (e.g., break start/end), clear processing flag
+              setState(() {
+                _isProcessingBreak = false;
+              });
+            }
           }
         }
 
         // Handle errors
         if (state is AttendanceError) {
-          SnackBarUtil.showError(context, state.message);
-          // Reset loading flag on error
-          setState(() {
-            _isLoadingAttendance = false;
-            isLoading = false;
-          });
+          if (mounted) {
+            SnackBarUtil.showError(context, state.message);
+            // Reset loading flag on error
+            setState(() {
+              _isLoadingAttendance = false;
+              isLoading = false;
+              _isProcessingBreak = false;
+            });
+            // Reload to reconcile optimistic UI with server truth
+            _loadAttendance(selectedDate);
+          }
         }
 
         // Handle loaded state
         if (state is AttendanceLoaded) {
-          setState(() {
-            isLoading = false;
-            _isLoadingAttendance = false; // Reset loading flag
+          if (mounted) {
+            setState(() {
+              isLoading = false;
+              _isLoadingAttendance = false; // Reset loading flag
 
-            // Check if viewing today
-            final isToday =
-                selectedDate.year == DateTime.now().year &&
-                selectedDate.month == DateTime.now().month &&
-                selectedDate.day == DateTime.now().day;
+              // Check if viewing today
+              final isToday =
+                  selectedDate.year == DateTime.now().year &&
+                  selectedDate.month == DateTime.now().month &&
+                  selectedDate.day == DateTime.now().day;
 
-            if (state.attendance != null) {
-              final attendance = state.attendance!;
-              attendanceId = attendance.id.toString();
-              isClockedIn = attendance.isClockedIn;
-              isOnBreak = attendance.isOnBreak;
+              if (state.attendance != null) {
+                final attendance = state.attendance!;
+                attendanceId = attendance.id.toString();
+                isClockedIn = attendance.isClockedIn;
+                isOnBreak = attendance.isOnBreak;
 
-              if (attendance.clockInTime != null) {
-                _clockInDateTime = DateTime.parse(attendance.clockInTime!);
-                clockInTime = _formatTime(_clockInDateTime!);
-                // Start work timer only if viewing today and clocked in
-                if (isClockedIn && isToday) {
-                  _startWorkTimer();
+                if (attendance.clockInTime != null) {
+                  _clockInDateTime = DateTime.parse(attendance.clockInTime!);
+                  clockInTime = _formatTime(_clockInDateTime!);
+                  // Start work timer only if viewing today and clocked in
+                  if (isClockedIn && isToday) {
+                    _startWorkTimer();
+                  }
                 }
-              }
 
-              if (attendance.clockOutTime != null) {
-                final clockOutDateTime = DateTime.parse(
-                  attendance.clockOutTime!,
+                if (attendance.clockOutTime != null) {
+                  final clockOutDateTime = DateTime.parse(
+                    attendance.clockOutTime!,
+                  );
+                  clockOutTime = _formatTime(clockOutDateTime);
+                }
+
+                // Calculate break and work time from hours
+                final totalWorkHours = attendance.totalWorkHours ?? 0.0;
+                final totalBreakHours = attendance.totalBreakHours ?? 0.0;
+                _totalBreakMinutes =
+                    totalBreakHours * 60; // completed breaks only
+                breakTime = _formatMinutes(_totalBreakMinutes);
+                AppLogger.debug(
+                  'ATTENDANCE_APPLY loaded id=${attendance.id} isOnBreak=${attendance.isOnBreak} totalBreakHours=${totalBreakHours.toStringAsFixed(4)}h totalBreakMinutes=${_totalBreakMinutes.toStringAsFixed(2)}m totalWorkHours=${totalWorkHours.toStringAsFixed(4)}h activeBreakStart=${attendance.activeBreakStart}',
                 );
-                clockOutTime = _formatTime(clockOutDateTime);
+                // Only overwrite workTime if clocked out; otherwise live timer continues
+                if (attendance.clockOutTime != null) {
+                  workTime = _formatHours(totalWorkHours);
+                }
+
+                // Start or stop break timer based on current break status only for today
+                if (isToday && isOnBreak) {
+                  // Resume break timer from server's active break start time if available
+                  if (attendance.activeBreakStart != null) {
+                    _breakStartDateTime = DateTime.parse(
+                      attendance.activeBreakStart!,
+                    );
+                  }
+                  _startBreakTimer();
+                } else {
+                  _stopBreakTimer();
+                }
+              } else {
+                // No attendance for this date
+                attendanceId = null;
+                isClockedIn = false;
+                isOnBreak = false;
+                clockInTime = '-- : --';
+                clockOutTime = '-- : --';
+                workTime = '00:00 hrs';
+                breakTime = '00:00 mins';
+                _clockInDateTime = null;
+                _totalBreakMinutes = 0;
               }
 
-              // Calculate break and work time from hours
-              final totalWorkHours = attendance.totalWorkHours ?? 0.0;
-              final totalBreakHours = attendance.totalBreakHours ?? 0.0;
-              workTime = _formatHours(totalWorkHours);
-              _totalBreakMinutes = totalBreakHours * 60;
-              breakTime = _formatMinutes(_totalBreakMinutes);
-            } else {
-              // No attendance for this date
-              attendanceId = null;
-              isClockedIn = false;
-              isOnBreak = false;
-              clockInTime = '-- : --';
-              clockOutTime = '-- : --';
-              workTime = '00:00 hrs';
-              breakTime = '00:00 mins';
-              _clockInDateTime = null;
-              _totalBreakMinutes = 0;
-            }
-
-            // Update activities from state
-            activities = state.activities
-                .map(
-                  (activity) => {
-                    'action': activity.action,
-                    'timestamp':
-                        activity.timestamp ?? DateTime.now().toIso8601String(),
-                    'details': activity.details ?? '',
-                  },
-                )
-                .toList();
-          });
+              // Update activities from state
+              activities = state.activities
+                  .map(
+                    (activity) => {
+                      'action': activity.action,
+                      'timestamp':
+                          activity.timestamp ??
+                          DateTime.now().toIso8601String(),
+                      'details': activity.details ?? '',
+                    },
+                  )
+                  .toList();
+            });
+          }
         }
       },
       child: BlocBuilder<AttendanceBloc, AttendanceState>(

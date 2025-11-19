@@ -13,6 +13,7 @@ class AttendanceModel extends Equatable {
   final String status;
   final int? completedBreaks;
   final int? activeBreaks;
+  final String? activeBreakStart; // Added to track active break start time
   final String? createdAt;
   final String? updatedAt;
 
@@ -29,6 +30,7 @@ class AttendanceModel extends Equatable {
     required this.status,
     this.completedBreaks,
     this.activeBreaks,
+    this.activeBreakStart,
     this.createdAt,
     this.updatedAt,
   });
@@ -67,6 +69,9 @@ class AttendanceModel extends Equatable {
           json['completed_breaks'] as int? ?? json['completedBreaks'] as int?,
       activeBreaks:
           json['active_breaks'] as int? ?? json['activeBreaks'] as int?,
+      activeBreakStart:
+          json['active_break_start'] as String? ??
+          json['activeBreakStart'] as String?,
       createdAt: json['created_at'] as String? ?? json['createdAt'] as String?,
       updatedAt: json['updated_at'] as String? ?? json['updatedAt'] as String?,
     );
@@ -86,6 +91,7 @@ class AttendanceModel extends Equatable {
       'status': status,
       'completed_breaks': completedBreaks,
       'active_breaks': activeBreaks,
+      'active_break_start': activeBreakStart,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };
@@ -105,6 +111,7 @@ class AttendanceModel extends Equatable {
     status,
     completedBreaks,
     activeBreaks,
+    activeBreakStart,
     createdAt,
     updatedAt,
   ];
