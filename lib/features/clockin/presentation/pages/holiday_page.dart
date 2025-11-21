@@ -153,12 +153,20 @@ class _HolidayPageState extends State<HolidayPage> {
 
         if (state is HolidaysLoadSuccess) {
           // Convert HolidayModel to HolidayItem for the widget
+          // and flag upcoming holidays (today or future) for blue indicator
+          final now = DateTime.now();
+          final today = DateTime(now.year, now.month, now.day);
           final holidays = state.holidays.map((holiday) {
+            final h = holiday.dateTime;
+            final hDate = DateTime(h.year, h.month, h.day);
+            final isUpcoming =
+                hDate.isAfter(today) || hDate.isAtSameMomentAs(today);
             return HolidayItem(
               title: holiday.title,
               date: holiday.dateTime,
               description: holiday.description,
-              isHighlighted: false, // Can customize based on criteria
+              // Blue for upcoming/today, grey for finished (handled in item)
+              isHighlighted: isUpcoming,
             );
           }).toList();
 

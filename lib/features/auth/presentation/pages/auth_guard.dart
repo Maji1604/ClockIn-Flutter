@@ -69,10 +69,11 @@ class _AuthGuardState extends State<AuthGuard> {
             'AUTH GUARD: Building with state: ${state.runtimeType}',
           );
 
-          if (state is AuthLoading ||
-              state is AuthInitial ||
-              !_splashComplete) {
-            // Show splash screen while checking auth or during 3-second delay
+          // Show splash only during the initial app startup delay.
+          // Do not show the splash when the bloc emits AuthLoading as a result
+          // of a user-initiated login — keep the login page visible so snackbars
+          // and inline loading indicators can be shown.
+          if (!_splashComplete) {
             return const SplashScreen();
           }
 

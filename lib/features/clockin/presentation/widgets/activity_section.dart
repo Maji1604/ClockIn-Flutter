@@ -29,6 +29,7 @@ class ActivitySection extends StatelessWidget {
   final double actionFontSize;
   final double dateFontSize;
   final double timeFontSize;
+  final bool showOnlyLast;
 
   const ActivitySection({
     super.key,
@@ -45,19 +46,24 @@ class ActivitySection extends StatelessWidget {
     this.actionFontSize = 14,
     this.dateFontSize = 10,
     this.timeFontSize = 12,
+    this.showOnlyLast = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final displayActivities = showOnlyLast && activities.isNotEmpty
+        ? [activities.last]
+        : activities;
 
-    // Just a vertical list; parent provides scrolling. Avoid extra scrollables here.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (int i = 0; i < activities.length; i++) ...[
-          _buildActivityItem(context, activities[i], theme),
-          if (i != activities.length - 1) SizedBox(height: itemSpacing * scale),
+        // Activity items
+        for (int i = 0; i < displayActivities.length; i++) ...[
+          _buildActivityItem(context, displayActivities[i], theme),
+          if (i != displayActivities.length - 1)
+            SizedBox(height: itemSpacing * scale),
         ],
         if (activities.isEmpty)
           Padding(

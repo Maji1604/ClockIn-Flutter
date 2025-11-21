@@ -20,24 +20,23 @@ class LeavePage extends StatefulWidget {
 class _LeavePageState extends State<LeavePage> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
-  final _startDateController = TextEditingController();
-  final _endDateController = TextEditingController();
+  final _dateController = TextEditingController();
   String _leaveType = 'CL';
   String _leavePeriod = 'Full Day';
   DateTime _startDate = DateTime.now();
   DateTime? _endDate;
+  DateTimeRange? _selectedRange;
 
   @override
   void initState() {
     super.initState();
-    _startDateController.text = _formatDate(_startDate);
+    _dateController.text = _formatDate(_startDate);
   }
 
   @override
   void dispose() {
     _descriptionController.dispose();
-    _startDateController.dispose();
-    _endDateController.dispose();
+    _dateController.dispose();
     super.dispose();
   }
 
@@ -49,37 +48,56 @@ class _LeavePageState extends State<LeavePage> {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
-  Future<void> _selectStartDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _startDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    if (picked != null && picked != _startDate) {
-      setState(() {
-        _startDate = picked;
-        _startDateController.text = _formatDate(picked);
-        // Reset end date if it's before new start date
-        if (_endDate != null && _endDate!.isBefore(picked)) {
-          _endDate = null;
-          _endDateController.clear();
-        }
-      });
-    }
-  }
+  /// Opens a date range picker. User can choose a single date (start==end)
+  /// or a range. If a single date is chosen, `_endDate` will be null and
+  /// the request will be treated as a single-day leave.
+  Future<void> _selectDateRange() async {
+    final first = DateTime.now();
+    final last = DateTime.now().add(const Duration(days: 365));
 
-  Future<void> _selectEndDate() async {
-    final picked = await showDatePicker(
+    // For Partial and Half Day, only allow single date selection
+    if (_leavePeriod != 'Full Day') {
+      final picked = await showDatePicker(
+        context: context,
+        firstDate: first,
+        lastDate: last,
+        initialDate: _startDate,
+      );
+
+      if (picked != null) {
+        setState(() {
+          _selectedRange = null;
+          _startDate = picked;
+          _endDate = null;
+          _dateController.text = _formatDate(picked);
+        });
+      }
+
+      return;
+    }
+
+    // Full Day: allow picking a range
+    final picked = await showDateRangePicker(
       context: context,
-      initialDate: _endDate ?? _startDate.add(const Duration(days: 1)),
-      firstDate: _startDate,
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      firstDate: first,
+      lastDate: last,
+      initialDateRange:
+          _selectedRange ?? DateTimeRange(start: _startDate, end: _startDate),
+      saveText: 'Select',
     );
-    if (picked != null && picked != _endDate) {
+
+    if (picked != null) {
       setState(() {
-        _endDate = picked;
-        _endDateController.text = _formatDate(picked);
+        _selectedRange = picked;
+        _startDate = picked.start;
+        if (picked.start == picked.end) {
+          _endDate = null;
+          _dateController.text = _formatDate(picked.start);
+        } else {
+          _endDate = picked.end;
+          _dateController.text =
+              '${_formatDate(picked.start)} - ${_formatDate(picked.end)}';
+        }
       });
     }
   }
@@ -97,6 +115,82 @@ class _LeavePageState extends State<LeavePage> {
         'Authentication error. Please login again.',
       );
       return;
+    }
+
+    // Prevent duplicate leave applications: fetch existing leaves and ensure
+    // there's no overlapping leave (unless that leave is 'rejected').
+    try {
+      final leaves = await context
+          .read<LeaveBloc>()
+          .repository
+          .getEmployeeLeaves(token, empId);
+
+      // Candidate range
+      final candidateStart = DateTime(
+        _startDate.year,
+        _startDate.month,
+        _startDate.day,
+      );
+      final candidateEnd = _endDate != null
+          ? DateTime(_endDate!.year, _endDate!.month, _endDate!.day)
+          : candidateStart;
+
+      for (final leave in leaves) {
+        final status = leave.status.toLowerCase();
+        if (status == 'rejected') continue; // rejected leaves don't block
+
+        DateTime leaveStart;
+        DateTime leaveEnd;
+        try {
+          leaveStart = DateTime.parse(leave.startDate).toLocal();
+        } catch (e) {
+          // If parsing fails, skip this leave
+          continue;
+        }
+
+        if (leave.endDate == null || (leave.endDate?.trim().isEmpty ?? true)) {
+          leaveEnd = DateTime(
+            leaveStart.year,
+            leaveStart.month,
+            leaveStart.day,
+          );
+        } else {
+          try {
+            leaveEnd = DateTime.parse(leave.endDate!).toLocal();
+          } catch (e) {
+            leaveEnd = DateTime(
+              leaveStart.year,
+              leaveStart.month,
+              leaveStart.day,
+            );
+          }
+        }
+
+        // Normalize to dates (ignore time)
+        leaveStart = DateTime(
+          leaveStart.year,
+          leaveStart.month,
+          leaveStart.day,
+        );
+        leaveEnd = DateTime(leaveEnd.year, leaveEnd.month, leaveEnd.day);
+
+        final overlaps =
+            !(candidateEnd.isBefore(leaveStart) ||
+                candidateStart.isAfter(leaveEnd));
+        if (overlaps) {
+          SnackBarUtil.showError(
+            context,
+            'A leave already exists for the selected date(s) (status: ${leave.status}). You cannot apply again unless it was rejected.',
+          );
+          return;
+        }
+      }
+    } catch (e, st) {
+      AppLogger.debug(
+        'LEAVE: failed to validate existing leaves before submit: $e',
+      );
+      AppLogger.debug('Stack: $st');
+      // If fetching leaves failed, allow submission to continue (server will validate too)
     }
 
     AppLogger.info('=== LEAVE SUBMISSION START ===');
@@ -175,8 +269,7 @@ class _LeavePageState extends State<LeavePage> {
           _descriptionController.clear();
           _startDate = DateTime.now();
           _endDate = null;
-          _startDateController.text = _formatDate(_startDate);
-          _endDateController.clear();
+          _dateController.text = _formatDate(_startDate);
           _leaveType = 'CL';
           _leavePeriod = 'Full Day';
 
@@ -336,18 +429,31 @@ class _LeavePageState extends State<LeavePage> {
                           onChanged: (value) {
                             if (value != null) {
                               setState(() {
+                                // Update leave period and ensure date selection mode matches
                                 _leavePeriod = value;
+                                // If switched to a non-full-day period, collapse any selected range
+                                if (_leavePeriod != 'Full Day') {
+                                  if (_selectedRange != null) {
+                                    _startDate = _selectedRange!.start;
+                                  }
+                                  _selectedRange = null;
+                                  _endDate = null;
+                                  _dateController.text = _formatDate(
+                                    _startDate,
+                                  );
+                                }
                               });
                             }
                           },
                         ),
                         const SizedBox(height: 16),
-                        // From Date Field
+                        // Date Field (single or range)
                         OutlinedLabelTextField(
-                          label: 'From Date',
-                          controller: _startDateController,
+                          label: 'Date',
+                          hintText: 'Tap to select date or range',
+                          controller: _dateController,
                           readOnly: true,
-                          onTap: _selectStartDate,
+                          onTap: _selectDateRange,
                           suffixIcon: const Icon(
                             Icons.calendar_today,
                             color: AppColors.primary,
@@ -355,24 +461,10 @@ class _LeavePageState extends State<LeavePage> {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please select start date';
+                              return 'Please select date';
                             }
                             return null;
                           },
-                        ),
-                        const SizedBox(height: 16),
-                        // To Date Field (Optional for multiple days)
-                        OutlinedLabelTextField(
-                          label: 'To Date (Optional)',
-                          hintText: 'For multiple days leave',
-                          controller: _endDateController,
-                          readOnly: true,
-                          onTap: _selectEndDate,
-                          suffixIcon: const Icon(
-                            Icons.event,
-                            color: AppColors.primary,
-                            size: 20,
-                          ),
                         ),
                         const SizedBox(height: 16),
                         // Leave Description
@@ -603,7 +695,7 @@ class _SuccessSheetState extends State<_SuccessSheet>
           ),
           child: Column(
             children: [
-              const SizedBox(height: 48),
+              const SizedBox(height: 24),
               // Animated checkmark circle with ripple effect
               SizedBox(
                 width: 140,
@@ -769,7 +861,12 @@ class _SuccessSheetState extends State<_SuccessSheet>
                     child: Opacity(
                       opacity: _buttonSlideAnimation.value.clamp(0.0, 1.0),
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                        padding: EdgeInsets.fromLTRB(
+                          24,
+                          0,
+                          24,
+                          32 + MediaQuery.of(context).viewPadding.bottom,
+                        ),
                         child: SizedBox(
                           width: double.infinity,
                           height: 56,

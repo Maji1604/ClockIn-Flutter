@@ -350,6 +350,148 @@ class _ClockInScreenState extends State<ClockInScreen> {
     }
   }
 
+  void _showActivityHistorySheet(
+    BuildContext context,
+    List<ActivityItem> activities,
+    double scale,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 12),
+                // Handle bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.borderLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Activity History',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.close, color: AppColors.textSecondary),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+                // Activity list
+                Expanded(
+                  child: ListView.separated(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 8,
+                    ),
+                    itemCount: activities.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 16),
+                    itemBuilder: (context, index) {
+                      final activity = activities[index];
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: AppColors.withOpacity(
+                                AppColors.primary,
+                                0.1,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              activity.icon,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  activity.action,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  activity.date,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textTertiary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Text(
+                            activity.time,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(
+                  height: MediaQuery.of(context).viewPadding.bottom + 16,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   void _updateTime() {
     // Update time every minute
     _timer = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -394,7 +536,9 @@ class _ClockInScreenState extends State<ClockInScreen> {
                 isOnBreak = attendance.isOnBreak;
 
                 if (attendance.clockInTime != null) {
-                  _clockInDateTime = DateTime.parse(attendance.clockInTime!);
+                  _clockInDateTime = DateTime.parse(
+                    attendance.clockInTime!,
+                  ).toLocal();
                   clockInTime = _formatTime(_clockInDateTime!);
                   // Start work timer if clocked in
                   if (isClockedIn) {
@@ -405,7 +549,7 @@ class _ClockInScreenState extends State<ClockInScreen> {
                 if (attendance.clockOutTime != null) {
                   final clockOutDateTime = DateTime.parse(
                     attendance.clockOutTime!,
-                  );
+                  ).toLocal();
                   clockOutTime = _formatTime(clockOutDateTime);
                   _stopWorkTimer();
                 }
@@ -466,6 +610,10 @@ class _ClockInScreenState extends State<ClockInScreen> {
 
         // Handle loaded state
         if (state is AttendanceLoaded) {
+          AppLogger.info(
+            '=== CLOCKIN_SCREEN: AttendanceLoaded state received ===',
+          );
+          AppLogger.debug('Activities count: ${state.activities.length}');
           if (mounted) {
             setState(() {
               isLoading = false;
@@ -484,7 +632,9 @@ class _ClockInScreenState extends State<ClockInScreen> {
                 isOnBreak = attendance.isOnBreak;
 
                 if (attendance.clockInTime != null) {
-                  _clockInDateTime = DateTime.parse(attendance.clockInTime!);
+                  _clockInDateTime = DateTime.parse(
+                    attendance.clockInTime!,
+                  ).toLocal();
                   clockInTime = _formatTime(_clockInDateTime!);
                   // Start work timer only if viewing today and clocked in
                   if (isClockedIn && isToday) {
@@ -495,7 +645,7 @@ class _ClockInScreenState extends State<ClockInScreen> {
                 if (attendance.clockOutTime != null) {
                   final clockOutDateTime = DateTime.parse(
                     attendance.clockOutTime!,
-                  );
+                  ).toLocal();
                   clockOutTime = _formatTime(clockOutDateTime);
                 }
 
@@ -519,7 +669,7 @@ class _ClockInScreenState extends State<ClockInScreen> {
                   if (attendance.activeBreakStart != null) {
                     _breakStartDateTime = DateTime.parse(
                       attendance.activeBreakStart!,
-                    );
+                    ).toLocal();
                   }
                   _startBreakTimer();
                 } else {
@@ -538,7 +688,7 @@ class _ClockInScreenState extends State<ClockInScreen> {
                 _totalBreakMinutes = 0;
               }
 
-              // Update activities from state
+              // Always update activities from state (even if just activities changed)
               activities = state.activities
                   .map(
                     (activity) => {
@@ -550,6 +700,7 @@ class _ClockInScreenState extends State<ClockInScreen> {
                     },
                   )
                   .toList();
+              AppLogger.debug('Activities updated: ${activities.length} items');
             });
           }
         }
@@ -570,44 +721,48 @@ class _ClockInScreenState extends State<ClockInScreen> {
   }
 
   Widget _buildMainContent() {
-    // Convert activities from API to ActivityItem widgets
-    final activityItems = activities.map((activity) {
-      IconData icon;
-      String action = activity['action'] ?? '';
+    // Convert activities from API to ActivityItem widgets and reverse to show newest first
+    final activityItems = activities
+        .map((activity) {
+          IconData icon;
+          String action = activity['action'] ?? '';
 
-      switch (action) {
-        case 'check_in':
-          icon = Icons.login;
-          action = 'Check In';
-          break;
-        case 'check_out':
-          icon = Icons.logout;
-          action = 'Check Out';
-          break;
-        case 'break_start':
-          icon = Icons.coffee;
-          action = 'Break Start';
-          break;
-        case 'break_end':
-          icon = Icons.coffee_outlined;
-          action = 'Break End';
-          break;
-        default:
-          icon = Icons.circle;
-      }
+          switch (action) {
+            case 'check_in':
+              icon = Icons.login;
+              action = 'Check In';
+              break;
+            case 'check_out':
+              icon = Icons.logout;
+              action = 'Check Out';
+              break;
+            case 'break_start':
+              icon = Icons.coffee;
+              action = 'Break Start';
+              break;
+            case 'break_end':
+              icon = Icons.coffee_outlined;
+              action = 'Break End';
+              break;
+            default:
+              icon = Icons.circle;
+          }
 
-      final timestamp = activity['timestamp'] != null
-          ? DateTime.parse(activity['timestamp']).toLocal()
-          : DateTime.now();
+          final timestamp = activity['timestamp'] != null
+              ? DateTime.parse(activity['timestamp']).toLocal()
+              : DateTime.now();
 
-      return ActivityItem(
-        action: action,
-        time: _formatTime(timestamp),
-        date:
-            '${timestamp.month.toString().padLeft(2, '0')}/${timestamp.day.toString().padLeft(2, '0')}/${timestamp.year}',
-        icon: icon,
-      );
-    }).toList();
+          return ActivityItem(
+            action: action,
+            time: _formatTime(timestamp),
+            date:
+                '${timestamp.month.toString().padLeft(2, '0')}/${timestamp.day.toString().padLeft(2, '0')}/${timestamp.year}',
+            icon: icon,
+          );
+        })
+        .toList()
+        .reversed
+        .toList();
 
     // Determine body per bottom nav index
     final Widget pageBody;
@@ -670,109 +825,143 @@ class _ClockInScreenState extends State<ClockInScreen> {
                 setState(() => selectedDate = date);
                 _loadAttendance(date);
               },
-              height: 72,
-              horizontalPadding: 8,
-              spacing: 8.0,
-              borderRadius: 10,
-              chipPadding: 18,
-              dayNumberFontSize: 15,
-              dayLabelFontSize: 10,
-              textSpacing: 1,
+              height: 60,
+              horizontalPadding: 12,
+              spacing: 12.0,
+              borderRadius: 12,
+              chipPadding: 8,
+              dayNumberFontSize: 32,
+              dayLabelFontSize: 16,
+              textSpacing: 6,
             ),
             const SizedBox(height: 6),
-            // Cards + Activity + Slider fit area
+            // Cards + Activity area (scrollable)
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   // Rough base design height for this section
-                  const baseHeight = 560.0; // tweakable
+                  const baseHeight = 600.0; // tweakable
                   final scale = (constraints.maxHeight / baseHeight).clamp(
-                    0.80,
+                    0.75,
                     1.0,
                   );
                   final gapSmall = 10.0 * scale;
                   final gapMedium = 14.0 * scale;
-                  return Column(
-                    children: [
-                      // Time cards grid (fixed height portion)
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20 * scale),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TimeCard(
-                                    title: 'Clock In',
-                                    time: clockInTime,
-                                    subtitle: 'Mobile App',
-                                    icon: Icons.login,
-                                    iconColor: AppColors.primary,
-                                    compact: false,
-                                    scale: scale,
-                                    verticalPaddingNormal: 24,
-                                    spacingBetweenTitleAndTime: 14,
-                                    spacingBetweenTimeAndSubtitle: 10,
+                  return SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        // Time cards grid (fixed height portion)
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 20 * scale),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TimeCard(
+                                      title: 'Clock In',
+                                      time: clockInTime,
+                                      subtitle: 'Mobile App',
+                                      icon: Icons.login,
+                                      iconColor: AppColors.primary,
+                                      compact: false,
+                                      scale: scale,
+                                      verticalPaddingNormal: 24,
+                                      spacingBetweenTitleAndTime: 14,
+                                      spacingBetweenTimeAndSubtitle: 10,
+                                    ),
                                   ),
-                                ),
-                                SizedBox(width: 12 * scale),
-                                Expanded(
-                                  child: TimeCard(
-                                    title: 'Clock Out',
-                                    time: clockOutTime,
-                                    subtitle: 'Mobile App',
-                                    icon: Icons.logout,
-                                    iconColor: AppColors.textSecondary,
-                                    compact: false,
-                                    scale: scale,
-                                    verticalPaddingNormal: 24,
-                                    spacingBetweenTitleAndTime: 14,
-                                    spacingBetweenTimeAndSubtitle: 10,
+                                  SizedBox(width: 12 * scale),
+                                  Expanded(
+                                    child: TimeCard(
+                                      title: 'Clock Out',
+                                      time: clockOutTime,
+                                      subtitle: 'Mobile App',
+                                      icon: Icons.logout,
+                                      iconColor: AppColors.textSecondary,
+                                      compact: false,
+                                      scale: scale,
+                                      verticalPaddingNormal: 24,
+                                      spacingBetweenTitleAndTime: 14,
+                                      spacingBetweenTimeAndSubtitle: 10,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: gapSmall),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TimeCard(
-                                    title: 'Work Time',
-                                    time: workTime,
-                                    subtitle: 'Avg 8 hours',
-                                    icon: Icons.access_time,
-                                    iconColor: AppColors.accent,
-                                    compact: false,
-                                    scale: scale,
-                                    verticalPaddingNormal: 24,
-                                    spacingBetweenTitleAndTime: 14,
-                                    spacingBetweenTimeAndSubtitle: 10,
+                                ],
+                              ),
+                              SizedBox(height: gapSmall),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TimeCard(
+                                      title: 'Work Time',
+                                      time: workTime,
+                                      subtitle: 'Avg 8 hours',
+                                      icon: Icons.access_time,
+                                      iconColor: AppColors.accent,
+                                      compact: false,
+                                      scale: scale,
+                                      verticalPaddingNormal: 24,
+                                      spacingBetweenTitleAndTime: 14,
+                                      spacingBetweenTimeAndSubtitle: 10,
+                                    ),
                                   ),
-                                ),
-                                SizedBox(width: 12 * scale),
-                                Expanded(
-                                  child: TimeCard(
-                                    title: 'Break Time',
-                                    time: breakTime,
-                                    subtitle: 'Avg 1hr 20 mins',
-                                    icon: Icons.coffee,
-                                    iconColor: AppColors.warning,
-                                    compact: false,
-                                    scale: scale,
-                                    verticalPaddingNormal: 24,
-                                    spacingBetweenTitleAndTime: 14,
-                                    spacingBetweenTimeAndSubtitle: 10,
+                                  SizedBox(width: 12 * scale),
+                                  Expanded(
+                                    child: TimeCard(
+                                      title: 'Break Time',
+                                      time: breakTime,
+                                      subtitle: 'Avg 1hr 20 mins',
+                                      icon: Icons.coffee,
+                                      iconColor: AppColors.warning,
+                                      compact: false,
+                                      scale: scale,
+                                      verticalPaddingNormal: 24,
+                                      spacingBetweenTitleAndTime: 14,
+                                      spacingBetweenTimeAndSubtitle: 10,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      SizedBox(height: gapMedium),
-                      // Scrollable activity list - increased size and dedicated scroll area
-                      Expanded(
-                        child: Padding(
+                        SizedBox(height: gapMedium),
+                        // Activity header
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16 * scale),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Activity',
+                                style: TextStyle(
+                                  fontSize: 16 * scale,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              if (activityItems.length > 1)
+                                GestureDetector(
+                                  onTap: () => _showActivityHistorySheet(
+                                    context,
+                                    activityItems,
+                                    scale,
+                                  ),
+                                  child: Text(
+                                    'View All',
+                                    style: TextStyle(
+                                      fontSize: 14 * scale,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: 8 * scale),
+                        // Activity list container
+                        Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16 * scale),
                           child: Container(
                             width: double.infinity,
@@ -785,49 +974,43 @@ class _ClockInScreenState extends State<ClockInScreen> {
                                 ).colorScheme.outlineVariant,
                               ),
                             ),
-                            child: Scrollbar(
-                              thumbVisibility: true,
-                              child: SingleChildScrollView(
-                                physics: const BouncingScrollPhysics(),
-                                padding: EdgeInsets.all(16 * scale),
-                                child: ActivitySection(
-                                  activities: activityItems,
-                                  onViewAll: () {},
-                                  scale: scale,
-                                  iconContainerSize: 36,
-                                  iconSize: 18,
-                                  itemSpacing: 16,
-                                  horizontalSpacing: 16,
-                                  textSpacing: 4,
-                                  actionFontSize: 16,
-                                  dateFontSize: 12,
-                                  timeFontSize: 14,
-                                ),
+                            padding: EdgeInsets.all(16 * scale),
+                            child: ActivitySection(
+                              activities: activityItems,
+                              onViewAll: () => _showActivityHistorySheet(
+                                context,
+                                activityItems,
+                                scale,
                               ),
+                              scale: scale,
+                              iconContainerSize: 36,
+                              iconSize: 18,
+                              itemSpacing: 16,
+                              horizontalSpacing: 16,
+                              textSpacing: 4,
+                              actionFontSize: 16,
+                              dateFontSize: 12,
+                              timeFontSize: 14,
+                              showOnlyLast: true,
                             ),
                           ),
                         ),
-                      ),
-                      SizedBox(height: gapSmall),
-                      // Fixed slider at bottom - with proper spacing from navbar
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          20 * scale,
-                          0,
-                          20 * scale,
-                          20,
-                        ),
-                        child: ClockInButton(
-                          isClockedIn: isClockedIn,
-                          isOnBreak: isOnBreak,
-                          onToggle: _toggleClockIn,
-                          onBreak: isClockedIn ? _handleBreak : null,
-                          bottomMargin: 0,
-                        ),
-                      ),
-                    ],
+                        SizedBox(height: 20),
+                      ],
+                    ),
                   );
                 },
+              ),
+            ),
+            // Fixed slider at bottom - always visible above navbar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: ClockInButton(
+                isClockedIn: isClockedIn,
+                isOnBreak: isOnBreak,
+                onToggle: _toggleClockIn,
+                onBreak: isClockedIn ? _handleBreak : null,
+                bottomMargin: 0,
               ),
             ),
           ],

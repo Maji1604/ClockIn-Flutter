@@ -199,7 +199,7 @@ class _HolidayCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: holiday.isHighlighted
                       ? highlightColor
-                      : cs.outlineVariant.withValues(alpha: 0.5),
+                      : const Color(0xFFD9D9D9),
                   // Half-cut oval: round only the left side, flat on the right
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(railWidth / 2),

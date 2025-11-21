@@ -6,7 +6,7 @@ import '../../../../core/dependency_injection/service_locator.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
-import '../../../auth/presentation/pages/role_selection_page.dart';
+import '../../../auth/presentation/pages/unified_login_page.dart';
 import 'employee_management_screen.dart';
 import 'admin_leave_management_screen.dart';
 import '../../../holiday/presentation/pages/admin_holiday_management_page.dart';
@@ -28,11 +28,11 @@ class AdminDashboard extends StatelessWidget {
 
         if (state is AuthUnauthenticated) {
           AppLogger.info(
-            '=== ADMIN DASHBOARD: User logged out, navigating to role selection ===',
+            '=== ADMIN DASHBOARD: User logged out, navigating to login page ===',
           );
-          // Navigate to role selection page and clear navigation stack
+          // Navigate to unified login page and clear navigation stack
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const RoleSelectionPage()),
+            MaterialPageRoute(builder: (context) => const UnifiedLoginPage()),
             (route) => false,
           );
         }

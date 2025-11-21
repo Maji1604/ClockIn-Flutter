@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/profile.dart';
+import '../../../../core/utils/app_logger.dart';
 import '../../domain/repositories/profile_repository.dart';
 
 // Events
@@ -112,6 +113,10 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     UpdateProfileEvent event,
     Emitter<ProfileState> emit,
   ) async {
+    AppLogger.info('=== PROFILE_BLOC: UpdateProfileEvent received ===');
+    AppLogger.debug(
+      'Payload: empId=${event.empId}, mobile=${event.mobileNumber}, address=${event.address}',
+    );
     if (state is ProfileLoaded) {
       emit(ProfileUpdating(currentProfile: (state as ProfileLoaded).profile));
     }
@@ -123,11 +128,14 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         mobileNumber: event.mobileNumber,
         address: event.address,
       );
+      AppLogger.info('=== PROFILE_BLOC: updateProfile succeeded ===');
       emit(ProfileUpdated(profile: profile));
       // After a brief moment, transition to ProfileLoaded
       await Future.delayed(const Duration(milliseconds: 500));
       emit(ProfileLoaded(profile: profile));
     } catch (e) {
+      AppLogger.info('=== PROFILE_BLOC: updateProfile failed ===');
+      AppLogger.debug('Error: $e');
       emit(ProfileError(message: e.toString()));
     }
   }

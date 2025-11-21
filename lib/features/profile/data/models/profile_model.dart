@@ -14,16 +14,35 @@ class ProfileModel extends Profile {
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
+    // Defensive parsing: avoid direct `as String` casts which throw if value is null
+    final empId = json['emp_id']?.toString() ?? '';
+    final name = json['name']?.toString() ?? '';
+    final email = json['email']?.toString();
+    final companyEmail = json['company_email']?.toString();
+    final mobileNumber = json['mobile_number']?.toString();
+    final address = json['address']?.toString();
+    final department = json['department']?.toString() ?? '';
+    final designation = json['designation']?.toString();
+    DateTime createdAt;
+    try {
+      final createdAtStr = json['created_at']?.toString();
+      createdAt = createdAtStr != null && createdAtStr.isNotEmpty
+          ? DateTime.parse(createdAtStr)
+          : DateTime.now();
+    } catch (_) {
+      createdAt = DateTime.now();
+    }
+
     return ProfileModel(
-      empId: json['emp_id'] as String,
-      name: json['name'] as String,
-      email: json['email'] as String?,
-      companyEmail: json['company_email'] as String?,
-      mobileNumber: json['mobile_number'] as String?,
-      address: json['address'] as String?,
-      department: json['department'] as String,
-      designation: json['designation'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      empId: empId,
+      name: name,
+      email: email,
+      companyEmail: companyEmail,
+      mobileNumber: mobileNumber,
+      address: address,
+      department: department,
+      designation: designation,
+      createdAt: createdAt,
     );
   }
 

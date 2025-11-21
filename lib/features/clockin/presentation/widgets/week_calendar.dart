@@ -17,57 +17,55 @@ class WeekCalendar extends StatelessWidget {
     super.key,
     required this.selectedDate,
     this.onDateSelected,
-    this.height = 52,
+    this.height = 44,
     this.horizontalPadding = 12,
     this.spacing = 6.0,
     this.borderRadius = 10,
-    this.chipPadding = 4,
-    this.dayNumberFontSize = 15,
-    this.dayLabelFontSize = 10,
-    this.textSpacing = 1,
+    this.chipPadding = 2,
+    this.dayNumberFontSize = 13,
+    this.dayLabelFontSize = 9,
+    this.textSpacing = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-      child: SizedBox(
-        height: height,
-        child: Row(
-          children: [
-            for (int i = 0; i < 7; i++) ...[
-              Expanded(
-                child: _DayChip(
-                  date: startOfWeek.add(Duration(days: i)),
-                  isSelected: _isSameDay(
-                    startOfWeek.add(Duration(days: i)),
-                    selectedDate,
-                  ),
-                  isFutureDate: startOfWeek
-                      .add(Duration(days: i))
-                      .isAfter(today),
-                  onTap: () {
-                    final selectedDay = startOfWeek.add(Duration(days: i));
-                    // Only allow selecting today or past dates
-                    if (!selectedDay.isAfter(today)) {
-                      onDateSelected?.call(selectedDay);
-                    }
-                  },
-                  height: height,
-                  borderRadius: borderRadius,
-                  chipPadding: chipPadding,
-                  dayNumberFontSize: dayNumberFontSize,
-                  dayLabelFontSize: dayLabelFontSize,
-                  textSpacing: textSpacing,
-                ),
-              ),
-              if (i != 6) SizedBox(width: spacing),
-            ],
-          ],
-        ),
+    final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
+
+    // Make chips square: width = height
+    final chipSize = height;
+
+    return SizedBox(
+      height: height,
+      child: ListView.separated(
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        scrollDirection: Axis.horizontal,
+        itemCount: 7,
+        separatorBuilder: (context, index) => SizedBox(width: spacing),
+        itemBuilder: (context, i) {
+          final date = startOfWeek.add(Duration(days: i));
+          return SizedBox(
+            width: chipSize,
+            height: chipSize,
+            child: _DayChip(
+              date: date,
+              isSelected: _isSameDay(date, selectedDate),
+              isFutureDate: date.isAfter(today),
+              onTap: () {
+                if (!date.isAfter(today) || _isSameDay(date, today)) {
+                  onDateSelected?.call(date);
+                }
+              },
+              height: chipSize,
+              borderRadius: borderRadius,
+              chipPadding: chipPadding,
+              dayNumberFontSize: dayNumberFontSize,
+              dayLabelFontSize: dayLabelFontSize,
+              textSpacing: textSpacing,
+            ),
+          );
+        },
       ),
     );
   }
@@ -123,7 +121,7 @@ class _DayChip extends StatelessWidget {
               ? AppColors.surfaceLight.withValues(alpha: 0.5)
               : isSelected
               ? AppColors.primary
-              : AppColors.surfaceLight,
+              : Colors.white,
           borderRadius: BorderRadius.circular(borderRadius),
           border: Border.all(
             color: isFutureDate
@@ -139,35 +137,41 @@ class _DayChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Flexible(
-              child: Text(
-                date.day.toString(),
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: dayNumberFontSize,
-                  color: isFutureDate
-                      ? AppColors.textSecondary.withValues(alpha: 0.4)
-                      : isSelected
-                      ? AppColors.textOnPrimary
-                      : AppColors.textSecondary,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  date.day.toString(),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: dayNumberFontSize,
+                    color: isFutureDate
+                        ? AppColors.textSecondary.withValues(alpha: 0.4)
+                        : isSelected
+                        ? AppColors.textOnPrimary
+                        : AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
             if (textSpacing > 0) SizedBox(height: textSpacing),
             Flexible(
-              child: Text(
-                dayLabel,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontSize: dayLabelFontSize,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.2,
-                  color: isFutureDate
-                      ? AppColors.textSecondary.withValues(alpha: 0.4)
-                      : isSelected
-                      ? AppColors.textOnPrimary
-                      : AppColors.textSecondary,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  dayLabel,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: dayLabelFontSize,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
+                    color: isFutureDate
+                        ? AppColors.textSecondary.withValues(alpha: 0.4)
+                        : isSelected
+                        ? AppColors.textOnPrimary
+                        : AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
           ],

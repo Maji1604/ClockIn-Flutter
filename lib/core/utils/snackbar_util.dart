@@ -6,6 +6,7 @@ enum SnackBarPosition { top, bottom }
 class SnackBarUtil {
   // Keeps track of the currently displayed top overlay snackbar
   static OverlayEntry? _currentTopEntry;
+  static OverlayEntry? _currentBottomEntry;
 
   /// Show a snackbar with consistent styling and safe positioning
   static void showSnackBar(
@@ -16,36 +17,30 @@ class SnackBarUtil {
     SnackBarAction? action,
     SnackBarPosition position = SnackBarPosition.top,
   }) {
-    final mediaQuery = MediaQuery.of(context);
-    final bottomSafeMargin = mediaQuery.viewPadding.bottom + 16;
-    final topSafeMargin = mediaQuery.viewPadding.top + 16;
+    // safe area insets available via MediaQuery when needed in specific handlers
 
-    // Clear any existing snackbars to avoid stacking
-    ScaffoldMessenger.of(context).clearSnackBars();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: backgroundColor,
+    // Use overlay-based snackbars so we can control sizing and centering
+    if (position == SnackBarPosition.top) {
+      showTopSnackBar(
+        context,
+        message,
+        backgroundColor:
+            backgroundColor ??
+            Theme.of(context).colorScheme.surface.withOpacity(0.95),
         duration: duration,
-        behavior: SnackBarBehavior.floating,
-        margin: position == SnackBarPosition.bottom
-            ? EdgeInsets.only(
-                bottom: bottomSafeMargin, // Respect bottom safe area
-                left: 16,
-                right: 16,
-              )
-            : EdgeInsets.only(
-                top: topSafeMargin, // Respect status bar (date/time) safe area
-                left: 16,
-                right: 16,
-              ),
-        dismissDirection: position == SnackBarPosition.top
-            ? DismissDirection.up
-            : DismissDirection.horizontal,
         action: action,
-      ),
-    );
+      );
+    } else {
+      showBottomSnackBar(
+        context,
+        message,
+        backgroundColor:
+            backgroundColor ??
+            Theme.of(context).colorScheme.surface.withOpacity(0.95),
+        duration: duration,
+        action: action,
+      );
+    }
   }
 
   /// Show a TOP snackbar using an Overlay so it truly appears at the top
@@ -68,42 +63,27 @@ class SnackBarUtil {
 
     final overlay = Overlay.of(context);
 
-    final controller = AnimationController(
-      vsync: overlay,
-      duration: const Duration(milliseconds: 250),
-    );
-    final animation = CurvedAnimation(
-      parent: controller,
-      curve: Curves.easeOut,
-    );
-
     _currentTopEntry = OverlayEntry(
       builder: (ctx) {
         return Positioned(
           top: topInset,
-          left: 12,
-          right: 12,
+          left: 0,
+          right: 0,
           child: Material(
             color: Colors.transparent,
-            child: FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, -0.25),
-                  end: Offset.zero,
-                ).animate(animation),
-                child: _TopSnackBarContainer(
-                  message: message,
-                  backgroundColor:
-                      backgroundColor ??
-                      theme.colorScheme.surface.withOpacity(0.95),
-                  textColor: theme.colorScheme.onSurface,
-                  action: action,
-                  onDismiss: () {
-                    _currentTopEntry?.remove();
-                    _currentTopEntry = null;
-                  },
-                ),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: _TopSnackBarContainer(
+                message: message,
+                backgroundColor:
+                    backgroundColor ??
+                    theme.colorScheme.surface.withOpacity(0.95),
+                textColor: theme.colorScheme.onSurface,
+                action: action,
+                onDismiss: () {
+                  _currentTopEntry?.remove();
+                  _currentTopEntry = null;
+                },
               ),
             ),
           ),
@@ -112,15 +92,70 @@ class SnackBarUtil {
     );
 
     overlay.insert(_currentTopEntry!);
-    controller.forward();
+
+    // Auto remove after duration (no animation controller to avoid needing a TickerProvider)
+    Future.delayed(duration).then((_) {
+      if (_currentTopEntry != null) {
+        _currentTopEntry?.remove();
+        _currentTopEntry = null;
+      }
+    });
+  }
+
+  /// Show a BOTTOM snackbar using an Overlay so it is centered and sized
+  /// to its content.
+  static void showBottomSnackBar(
+    BuildContext context,
+    String message, {
+    Color? backgroundColor,
+    Duration duration = const Duration(seconds: 3),
+    SnackBarAction? action,
+  }) {
+    final theme = Theme.of(context);
+    final mediaQuery = MediaQuery.of(context);
+    final bottomInset = mediaQuery.viewPadding.bottom + 12;
+
+    // Remove any existing bottom entry first
+    _currentBottomEntry?.remove();
+    _currentBottomEntry = null;
+
+    final overlay = Overlay.of(context);
+
+    _currentBottomEntry = OverlayEntry(
+      builder: (ctx) {
+        return Positioned(
+          bottom: bottomInset,
+          left: 0,
+          right: 0,
+          child: Material(
+            color: Colors.transparent,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: _TopSnackBarContainer(
+                message: message,
+                backgroundColor:
+                    backgroundColor ??
+                    theme.colorScheme.surface.withOpacity(0.95),
+                textColor: theme.colorScheme.onSurface,
+                action: action,
+                onDismiss: () {
+                  _currentBottomEntry?.remove();
+                  _currentBottomEntry = null;
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    overlay.insert(_currentBottomEntry!);
 
     // Auto remove after duration
     Future.delayed(duration).then((_) {
-      if (_currentTopEntry != null) {
-        controller.reverse().then((_) {
-          _currentTopEntry?.remove();
-          _currentTopEntry = null;
-        });
+      if (_currentBottomEntry != null) {
+        _currentBottomEntry?.remove();
+        _currentBottomEntry = null;
       }
     });
   }
@@ -132,18 +167,19 @@ class SnackBarUtil {
     Duration duration = const Duration(seconds: 3),
     SnackBarPosition position = SnackBarPosition.top,
   }) {
+    // Use a very light green for success snackbars (paler, not solid)
     if (position == SnackBarPosition.top) {
       showTopSnackBar(
         context,
         message,
-        backgroundColor: Colors.green.shade600,
+        backgroundColor: Colors.green.shade200,
         duration: duration,
       );
     } else {
       showSnackBar(
         context,
         message,
-        backgroundColor: Colors.green.shade600,
+        backgroundColor: Colors.green.shade200,
         duration: duration,
         position: position,
       );
@@ -157,18 +193,19 @@ class SnackBarUtil {
     Duration duration = const Duration(seconds: 3),
     SnackBarPosition position = SnackBarPosition.top,
   }) {
+    // Use a light red for error snackbars (so it's not a heavy solid color)
     if (position == SnackBarPosition.top) {
       showTopSnackBar(
         context,
         message,
-        backgroundColor: Colors.red.shade600,
+        backgroundColor: Colors.red.shade200,
         duration: duration,
       );
     } else {
       showSnackBar(
         context,
         message,
-        backgroundColor: Colors.red.shade600,
+        backgroundColor: Colors.red.shade200,
         duration: duration,
         position: position,
       );
@@ -247,7 +284,7 @@ class _TopSnackBarContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dismissible(
       key: const ValueKey('top_snackbar'),
-      direction: DismissDirection.up,
+      direction: DismissDirection.vertical,
       onDismissed: (_) => onDismiss(),
       child: Material(
         elevation: 6,
@@ -258,8 +295,12 @@ class _TopSnackBarContainer extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: Text(message, style: TextStyle(color: textColor)),
+              Flexible(
+                child: Text(
+                  message,
+                  style: TextStyle(color: textColor),
+                  textAlign: TextAlign.center,
+                ),
               ),
               if (action != null)
                 TextButton(

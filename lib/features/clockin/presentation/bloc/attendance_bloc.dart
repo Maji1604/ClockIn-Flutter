@@ -258,18 +258,35 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
     Emitter<AttendanceState> emit,
   ) async {
     try {
+      AppLogger.info('=== BLOC LOAD ACTIVITIES START ===');
       final activities = await attendanceRepository.getActivities(
         event.token,
         event.empId,
         date: event.date,
       );
-      if (state is AttendanceLoaded) {
-        final currentState = state as AttendanceLoaded;
+      AppLogger.debug('Activities loaded: ${activities.length} items');
+
+      // Get attendance from current state
+      final currentAttendance = state is AttendanceLoaded
+          ? (state as AttendanceLoaded).attendance
+          : (state is AttendanceOperationSuccess
+                ? (state as AttendanceOperationSuccess).attendance
+                : null);
+
+      if (currentAttendance != null) {
+        AppLogger.debug(
+          'Emitting AttendanceLoaded with updated activities (current state: ${state.runtimeType})',
+        );
         emit(
           AttendanceLoaded(
-            attendance: currentState.attendance,
+            attendance: currentAttendance,
             activities: activities,
           ),
+        );
+        AppLogger.info('=== BLOC: New AttendanceLoaded state emitted ===');
+      } else {
+        AppLogger.warning(
+          'Cannot emit AttendanceLoaded: no attendance in current state (${state.runtimeType})',
         );
       }
     } catch (e) {

@@ -38,7 +38,7 @@ class _MyProfileDetailPageState extends State<MyProfileDetailPage>
 
   void _loadProfile() async {
     final token = await ServiceLocator.authRepository.getToken();
-    final empId = widget.userData['employee_id'] as String;
+    final empId = widget.userData['employee_id']?.toString() ?? '';
 
     if (token != null && empId.isNotEmpty) {
       if (!mounted) return;
@@ -75,9 +75,13 @@ class _MyProfileDetailPageState extends State<MyProfileDetailPage>
     if (!_formKey.currentState!.validate()) return;
 
     final token = await ServiceLocator.authRepository.getToken();
-    final empId = widget.userData['employee_id'] as String;
+    final empId = widget.userData['employee_id']?.toString() ?? '';
 
     if (token != null && empId.isNotEmpty) {
+      AppLogger.info('=== PROFILE_UI: Update button pressed ===');
+      AppLogger.debug(
+        'Update payload: empId=$empId, mobile=${_mobileController.text.trim()}, address=${_addressController.text.trim()}',
+      );
       if (!mounted) return;
       context.read<ProfileBloc>().add(
         UpdateProfileEvent(
@@ -144,11 +148,11 @@ class _MyProfileDetailPageState extends State<MyProfileDetailPage>
                             labelColor: Colors.white,
                             unselectedLabelColor: const Color(0xFF6B7280),
                             labelStyle: const TextStyle(
-                              fontSize: 14,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
                             unselectedLabelStyle: const TextStyle(
-                              fontSize: 14,
+                              fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
                             indicator: BoxDecoration(
@@ -232,15 +236,17 @@ class _MyProfileDetailPageState extends State<MyProfileDetailPage>
                   child: ElevatedButton(
                     onPressed: _handleUpdateProfile,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3),
-                      foregroundColor: Colors.white,
+                      // Let the child container draw the gradient — make button background transparent
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.zero,
                     ),
                     child: Container(
+                      height: 52,
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
@@ -256,6 +262,7 @@ class _MyProfileDetailPageState extends State<MyProfileDetailPage>
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.5,
+                          color: Colors.white,
                         ),
                       ),
                     ),
