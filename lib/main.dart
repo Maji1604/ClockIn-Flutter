@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/core.dart';
 import 'core/config/api_config.dart';
@@ -7,6 +8,26 @@ import 'core/dependency_injection/service_locator.dart';
 import 'features/auth/presentation/pages/auth_guard.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
+
+/// Preload SVG assets into cache to prevent icon flicker on first render
+Future<void> _preloadSvgAssets() async {
+  final svgPaths = [
+    AppIcons.menu,
+    AppIcons.holiday,
+    AppIcons.calendar,
+    AppIcons.profile,
+    AppIcons.group,
+    AppIcons.clockInTime,
+    AppIcons.clockOutTime,
+    AppIcons.workTime,
+    AppIcons.breakTime,
+  ];
+
+  // Load all SVG strings into the asset bundle cache
+  await Future.wait(svgPaths.map((path) => rootBundle.loadString(path)));
+
+  AppLogger.info('SVG assets preloaded: ${svgPaths.length} icons');
+}
 
 void main() async {
   // Catch all errors at the Flutter framework level
@@ -31,6 +52,9 @@ void main() async {
 
       // Setup service locator for BLoC
       ServiceLocator.setup();
+
+      // Preload SVG assets to prevent icon flicker
+      await _preloadSvgAssets();
 
       runApp(const ClockInApp());
     },

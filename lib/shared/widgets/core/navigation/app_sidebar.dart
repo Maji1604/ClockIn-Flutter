@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/core.dart';
 
 /// Responsive sidebar/navigation rail used across the admin UI
@@ -49,30 +50,85 @@ class AppSidebar extends StatelessWidget {
                 ],
               ),
             ),
-            destinations: const [
+            destinations: [
               NavigationRailDestination(
-                icon: Icon(Icons.home_outlined),
-                label: Text('Home'),
+                icon: _buildSvgIcon(
+                  AppIcons.menu,
+                  false,
+                  width: 20,
+                  height: 14,
+                ),
+                selectedIcon: _buildSvgIcon(
+                  AppIcons.menu,
+                  true,
+                  width: 20,
+                  height: 14,
+                ),
+                label: const Text('Home'),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.people_outline),
-                label: Text('People'),
+                icon: _buildSvgIcon(
+                  AppIcons.group,
+                  false,
+                  width: 24,
+                  height: 24,
+                ),
+                selectedIcon: _buildSvgIcon(
+                  AppIcons.group,
+                  true,
+                  width: 24,
+                  height: 24,
+                ),
+                label: const Text('People'),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.access_time_outlined),
-                label: Text('Time'),
+                icon: _buildSvgIcon(
+                  AppIcons.calendar,
+                  false,
+                  width: 22,
+                  height: 24,
+                ),
+                selectedIcon: _buildSvgIcon(
+                  AppIcons.calendar,
+                  true,
+                  width: 22,
+                  height: 24,
+                ),
+                label: const Text('Time'),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.list_alt_outlined),
-                label: Text('Requests'),
+                icon: _buildSvgIcon(
+                  AppIcons.holiday,
+                  false,
+                  width: 24,
+                  height: 24,
+                ),
+                selectedIcon: _buildSvgIcon(
+                  AppIcons.holiday,
+                  true,
+                  width: 24,
+                  height: 24,
+                ),
+                label: const Text('Requests'),
               ),
-              NavigationRailDestination(
+              const NavigationRailDestination(
                 icon: Icon(Icons.bar_chart_outlined),
                 label: Text('Reports'),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.settings_outlined),
-                label: Text('Settings'),
+                icon: _buildSvgIcon(
+                  AppIcons.setting,
+                  false,
+                  width: 22,
+                  height: 22,
+                ),
+                selectedIcon: _buildSvgIcon(
+                  AppIcons.setting,
+                  true,
+                  width: 22,
+                  height: 22,
+                ),
+                label: const Text('Settings'),
               ),
             ],
           );
@@ -114,21 +170,39 @@ class AppSidebar extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildDrawerItem(context, 0, Icons.home_outlined, 'Home'),
-                _buildDrawerItem(context, 1, Icons.people_outline, 'People'),
+                _buildDrawerItem(
+                  context,
+                  0,
+                  AppIcons.menu,
+                  'Home',
+                  width: 20,
+                  height: 14,
+                ),
+                _buildDrawerItem(
+                  context,
+                  1,
+                  AppIcons.group,
+                  'People',
+                  width: 24,
+                  height: 24,
+                ),
                 _buildDrawerItem(
                   context,
                   2,
-                  Icons.access_time_outlined,
+                  AppIcons.calendar,
                   'Time',
+                  width: 22,
+                  height: 24,
                 ),
                 _buildDrawerItem(
                   context,
                   3,
-                  Icons.list_alt_outlined,
+                  AppIcons.holiday,
                   'Requests',
+                  width: 24,
+                  height: 24,
                 ),
-                _buildDrawerItem(
+                _buildDrawerItemIcon(
                   context,
                   4,
                   Icons.bar_chart_outlined,
@@ -137,8 +211,10 @@ class AppSidebar extends StatelessWidget {
                 _buildDrawerItem(
                   context,
                   5,
-                  Icons.settings_outlined,
+                  AppIcons.setting,
                   'Settings',
+                  width: 22,
+                  height: 22,
                 ),
               ],
             ),
@@ -148,7 +224,58 @@ class AppSidebar extends StatelessWidget {
     );
   }
 
+  Widget _buildSvgIcon(
+    String assetPath,
+    bool selected, {
+    double? width,
+    double? height,
+  }) {
+    return SvgPicture.asset(
+      assetPath,
+      width: width,
+      height: height,
+      colorFilter: ColorFilter.mode(
+        selected ? AppColors.primary : AppColors.textSecondary,
+        BlendMode.srcIn,
+      ),
+    );
+  }
+
   Widget _buildDrawerItem(
+    BuildContext context,
+    int index,
+    String iconPath,
+    String label, {
+    double? width,
+    double? height,
+  }) {
+    final selected = index == selectedIndex;
+    return ListTile(
+      leading: SvgPicture.asset(
+        iconPath,
+        width: width,
+        height: height,
+        colorFilter: ColorFilter.mode(
+          selected ? AppColors.primary : AppColors.textSecondary,
+          BlendMode.srcIn,
+        ),
+      ),
+      title: Text(
+        label,
+        style: TextStyle(
+          color: selected ? AppColors.primary : AppColors.textPrimary,
+        ),
+      ),
+      selected: selected,
+      onTap: () {
+        Navigator.maybePop(context);
+        onSelect(index);
+      },
+    );
+  }
+
+  // Fallback for icons without SVG (Reports)
+  Widget _buildDrawerItemIcon(
     BuildContext context,
     int index,
     IconData icon,

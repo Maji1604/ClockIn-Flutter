@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/repositories/employee_repository.dart';
 import 'employee_event.dart';
 import 'employee_state.dart';
+import '../../../../core/utils/error_formatter.dart';
 
 class EmployeeBloc extends Bloc<EmployeeEvent, EmployeeState> {
   final EmployeeRepository employeeRepository;
@@ -21,7 +22,7 @@ class EmployeeBloc extends Bloc<EmployeeEvent, EmployeeState> {
       final employees = await employeeRepository.getEmployees(event.token);
       emit(EmployeeLoaded(employees));
     } catch (e) {
-      emit(EmployeeError(e.toString()));
+      emit(EmployeeError(ErrorFormatter.format(e)));
     }
   }
 
@@ -42,7 +43,7 @@ class EmployeeBloc extends Bloc<EmployeeEvent, EmployeeState> {
       final employees = await employeeRepository.getEmployees(event.token);
       emit(EmployeeLoaded(employees));
     } catch (e) {
-      emit(EmployeeError(e.toString()));
+      emit(EmployeeError(ErrorFormatter.format(e)));
     }
   }
 
@@ -58,7 +59,7 @@ class EmployeeBloc extends Bloc<EmployeeEvent, EmployeeState> {
       final employees = await employeeRepository.getEmployees(event.token);
       emit(EmployeeLoaded(employees));
     } catch (e) {
-      emit(EmployeeError(e.toString()));
+      emit(EmployeeError(ErrorFormatter.format(e)));
     }
   }
 }

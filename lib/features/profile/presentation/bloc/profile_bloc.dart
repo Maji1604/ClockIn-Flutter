@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/profile.dart';
 import '../../../../core/utils/app_logger.dart';
+import '../../../../core/utils/error_formatter.dart';
 import '../../domain/repositories/profile_repository.dart';
 
 // Events
@@ -105,7 +106,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final profile = await repository.getProfile(event.empId, event.token);
       emit(ProfileLoaded(profile: profile));
     } catch (e) {
-      emit(ProfileError(message: e.toString()));
+      emit(ProfileError(message: ErrorFormatter.format(e)));
     }
   }
 
@@ -136,7 +137,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     } catch (e) {
       AppLogger.info('=== PROFILE_BLOC: updateProfile failed ===');
       AppLogger.debug('Error: $e');
-      emit(ProfileError(message: e.toString()));
+      emit(ProfileError(message: ErrorFormatter.format(e)));
     }
   }
 }

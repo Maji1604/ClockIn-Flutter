@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/core.dart';
 
 class BottomNavigation extends StatelessWidget {
@@ -27,11 +28,11 @@ class BottomNavigation extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildNavItem(Icons.home, 0),
-                  _buildNavItem(Icons.beach_access, 1),
+                  _buildNavItem(AppIcons.menu, 0, width: 35, height: 35),
+                  _buildNavItem(AppIcons.holiday, 1, width: 24, height: 24),
                   const SizedBox(width: 56), // Space for floating button
-                  _buildNavItem(Icons.calendar_month, 2),
-                  _buildNavItem(Icons.person, 3),
+                  _buildNavItem(AppIcons.calendar, 2, width: 22, height: 24),
+                  _buildNavItem(AppIcons.profile, 3, width: 18, height: 20),
                 ],
               ),
             ),
@@ -47,7 +48,12 @@ class BottomNavigation extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(IconData icon, int index) {
+  Widget _buildNavItem(
+    String iconPath,
+    int index, {
+    double? width,
+    double? height,
+  }) {
     final isSelected = selectedIndex == index;
 
     return GestureDetector(
@@ -61,10 +67,16 @@ class BottomNavigation extends StatelessWidget {
               : Colors.transparent,
           borderRadius: BorderRadius.circular(24),
         ),
-        child: Icon(
-          icon,
-          color: isSelected ? AppColors.primary : AppColors.textSecondary,
-          size: 24,
+        child: Center(
+          child: SvgPicture.asset(
+            iconPath,
+            width: width,
+            height: height,
+            colorFilter: ColorFilter.mode(
+              isSelected ? AppColors.primary : AppColors.textSecondary,
+              BlendMode.srcIn,
+            ),
+          ),
         ),
       ),
     );
@@ -85,7 +97,17 @@ class BottomNavigation extends StatelessWidget {
           ),
         ],
       ),
-      child: const Icon(Icons.group, color: AppColors.textOnPrimary, size: 28),
+      child: Center(
+        child: SvgPicture.asset(
+          AppIcons.group,
+          width: 28,
+          height: 28,
+          colorFilter: const ColorFilter.mode(
+            AppColors.textOnPrimary,
+            BlendMode.srcIn,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../../core/core.dart';
 import '../../../../core/config/api_config.dart';
+import '../../../../core/utils/password_hasher.dart';
 
 class OnboardingPasswordResetPage extends StatefulWidget {
   final String token;
@@ -43,9 +44,26 @@ class _OnboardingPasswordResetPageState
       return;
     }
 
+    // Check that new password is different from current password
+    if (_newPasswordController.text == _currentPasswordController.text) {
+      SnackBarUtil.showWarning(
+        context,
+        'New password cannot be the same as your current password',
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
+      // Hash passwords before sending to server
+      final hashedCurrentPassword = PasswordHasher.hash(
+        _currentPasswordController.text,
+      );
+      final hashedNewPassword = PasswordHasher.hash(
+        _newPasswordController.text,
+      );
+
       final response = await http.put(
         Uri.parse('${ApiConfig.baseUrl}/api/auth/reset-password'),
         headers: {
@@ -53,8 +71,8 @@ class _OnboardingPasswordResetPageState
           'Authorization': 'Bearer ${widget.token}',
         },
         body: jsonEncode({
-          'currentPassword': _currentPasswordController.text,
-          'newPassword': _newPasswordController.text,
+          'currentPassword': hashedCurrentPassword,
+          'newPassword': hashedNewPassword,
         }),
       );
 
@@ -169,6 +187,9 @@ class _OnboardingPasswordResetPageState
                     }
                     if (value.length < 8) {
                       return 'Password must be at least 8 characters';
+                    }
+                    if (value == _currentPasswordController.text) {
+                      return 'New password cannot be same as current password';
                     }
                     return null;
                   },

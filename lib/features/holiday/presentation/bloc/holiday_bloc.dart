@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/repositories/holiday_repository_impl.dart';
 import 'holiday_event.dart';
+import '../../../../core/utils/error_formatter.dart';
 
 export 'holiday_event.dart';
 
@@ -26,7 +27,7 @@ class HolidayBloc extends Bloc<HolidayEvent, HolidayState> {
       );
       emit(HolidaysLoadSuccess(holidays: holidays));
     } catch (e) {
-      emit(HolidayError(message: e.toString()));
+      emit(HolidayError(message: ErrorFormatter.format(e)));
     }
   }
 
@@ -53,7 +54,7 @@ class HolidayBloc extends Bloc<HolidayEvent, HolidayState> {
       // Refresh the list
       add(FetchHolidaysEvent(token: event.token));
     } catch (e) {
-      emit(HolidayError(message: e.toString()));
+      emit(HolidayError(message: ErrorFormatter.format(e)));
     }
   }
 
@@ -81,7 +82,7 @@ class HolidayBloc extends Bloc<HolidayEvent, HolidayState> {
       // Refresh the list
       add(FetchHolidaysEvent(token: event.token));
     } catch (e) {
-      emit(HolidayError(message: e.toString()));
+      emit(HolidayError(message: ErrorFormatter.format(e)));
     }
   }
 
@@ -97,7 +98,7 @@ class HolidayBloc extends Bloc<HolidayEvent, HolidayState> {
       // Refresh the list
       add(FetchHolidaysEvent(token: event.token));
     } catch (e) {
-      emit(HolidayError(message: e.toString()));
+      emit(HolidayError(message: ErrorFormatter.format(e)));
     }
   }
 }

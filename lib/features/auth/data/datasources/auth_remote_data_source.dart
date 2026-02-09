@@ -23,6 +23,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       AppLogger.debug('Base URL (primary): $baseUrl');
       AppLogger.debug('Request URL: $baseUrl/api/auth/login');
       AppLogger.debug('Username: $username');
+
+      // Send password to server - server handles PBKDF2 hashing
+      AppLogger.debug('Sending credentials to server');
+
       http.Response response;
       try {
         response = await client.post(

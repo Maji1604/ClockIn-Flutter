@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../../../../core/core.dart';
+import '../../../../shared/widgets/app_svg_icon.dart';
 import '../bloc/attendance_bloc.dart';
 import '../bloc/attendance_event.dart';
 import '../bloc/attendance_state.dart';
@@ -20,8 +21,6 @@ import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../holiday/presentation/bloc/holiday_bloc.dart';
 import '../../../holiday/data/repositories/holiday_repository_impl.dart';
 import '../../../holiday/data/datasources/holiday_remote_data_source.dart';
-
-import '../../../../core/utils/app_logger.dart';
 
 class ClockInScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -62,16 +61,92 @@ class _ClockInScreenState extends State<ClockInScreen> {
 
     // Wrap in try-catch to prevent crashes
     try {
-      // Add a small delay to ensure widget is fully mounted
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) {
+      // Check current state immediately and apply any pre-loaded data
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+
+        final attendanceState = context.read<AttendanceBloc>().state;
+        AppLogger.debug(
+          'CLOCKIN_SCREEN: Initial state check: ${attendanceState.runtimeType}',
+        );
+
+        // If data was pre-fetched and already loaded, apply it immediately
+        if (attendanceState is AttendanceLoaded) {
+          _applyAttendanceData(attendanceState);
+        } else if (attendanceState is AttendanceInitial) {
+          // Data hasn't been fetched yet, start loading
           _loadAttendance(DateTime.now());
         }
+        // If AttendanceLoading, just wait for BlocListener to handle completion
       });
     } catch (e, stackTrace) {
       AppLogger.error('Error in initState: $e');
       AppLogger.debug('Stack trace: $stackTrace');
     }
+  }
+
+  /// Apply attendance data from state to local variables
+  void _applyAttendanceData(AttendanceLoaded state) {
+    if (!mounted) return;
+
+    setState(() {
+      isLoading = false;
+
+      if (state.attendance != null) {
+        final attendance = state.attendance!;
+        attendanceId = attendance.id.toString();
+        isClockedIn = attendance.isClockedIn;
+        isOnBreak = attendance.isOnBreak;
+
+        if (attendance.clockInTime != null) {
+          _clockInDateTime = DateTime.parse(attendance.clockInTime!).toLocal();
+          clockInTime = _formatTime(_clockInDateTime!);
+          if (isClockedIn) {
+            _startWorkTimer();
+          }
+        }
+
+        if (attendance.clockOutTime != null) {
+          final clockOutDateTime = DateTime.parse(
+            attendance.clockOutTime!,
+          ).toLocal();
+          clockOutTime = _formatTime(clockOutDateTime);
+          _stopWorkTimer();
+        }
+
+        final totalBreakHours = attendance.totalBreakHours ?? 0.0;
+        if (_breakTimer == null) {
+          _totalBreakMinutes = totalBreakHours * 60;
+          breakTime = _formatMinutes(_totalBreakMinutes);
+        }
+
+        if (attendance.clockOutTime != null) {
+          final totalWorkHours = attendance.totalWorkHours ?? 0.0;
+          workTime = _formatHours(totalWorkHours);
+        }
+
+        if (isOnBreak && attendance.activeBreakStart != null) {
+          _breakStartDateTime = DateTime.parse(attendance.activeBreakStart!);
+          _startBreakTimer();
+        }
+      }
+
+      // Apply activities from loaded state
+      if (state.activities.isNotEmpty) {
+        activities = state.activities
+            .map(
+              (activity) => {
+                'action': activity.action,
+                'timestamp':
+                    activity.timestamp ?? DateTime.now().toIso8601String(),
+                'details': activity.details ?? '',
+              },
+            )
+            .toList();
+      }
+
+      AppLogger.info('CLOCKIN_SCREEN: Pre-loaded data applied successfully');
+    });
   }
 
   @override
@@ -204,7 +279,9 @@ class _ClockInScreenState extends State<ClockInScreen> {
   }
 
   void _startWorkTimer() {
-    _workTimer?.cancel();
+    // If timer already running, don't restart (preserves continuity)
+    if (_workTimer != null) return;
+
     _workTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_clockInDateTime != null && mounted && isClockedIn) {
         setState(() {
@@ -438,11 +515,18 @@ class _ClockInScreenState extends State<ClockInScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             alignment: Alignment.center,
-                            child: Icon(
-                              activity.icon,
-                              size: 18,
-                              color: AppColors.primary,
-                            ),
+                            child: activity.svgPath != null
+                                ? AppSvgIcon(
+                                    activity.svgPath!,
+                                    width: 18,
+                                    height: 18,
+                                    color: AppColors.primary,
+                                  )
+                                : Icon(
+                                    activity.icon,
+                                    size: 18,
+                                    color: AppColors.primary,
+                                  ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -557,9 +641,14 @@ class _ClockInScreenState extends State<ClockInScreen> {
                 // Calculate break and work time from hours
                 final totalWorkHours = attendance.totalWorkHours ?? 0.0;
                 final totalBreakHours = attendance.totalBreakHours ?? 0.0;
-                _totalBreakMinutes =
-                    totalBreakHours * 60; // completed breaks only
-                breakTime = _formatMinutes(_totalBreakMinutes);
+
+                // Only update _totalBreakMinutes if break timer is NOT running
+                // (otherwise we lose the live break time calculation)
+                if (_breakTimer == null) {
+                  _totalBreakMinutes = totalBreakHours * 60;
+                  breakTime = _formatMinutes(_totalBreakMinutes);
+                }
+
                 AppLogger.debug(
                   'ATTENDANCE_APPLY opSuccess id=${attendance.id} isOnBreak=${attendance.isOnBreak} totalBreakHours=${totalBreakHours.toStringAsFixed(4)}h totalBreakMinutes=${_totalBreakMinutes.toStringAsFixed(2)}m totalWorkHours=${totalWorkHours.toStringAsFixed(4)}h activeBreakStart=${attendance.activeBreakStart}',
                 );
@@ -571,7 +660,9 @@ class _ClockInScreenState extends State<ClockInScreen> {
                 // Manage break timer when operation success updates isOnBreak
                 if (isOnBreak) {
                   // Resume break timer from server's active break start time if available
-                  if (attendance.activeBreakStart != null) {
+                  // Only set _breakStartDateTime if not already set (preserve existing)
+                  if (_breakStartDateTime == null &&
+                      attendance.activeBreakStart != null) {
                     _breakStartDateTime = DateTime.parse(
                       attendance.activeBreakStart!,
                     );
@@ -652,9 +743,14 @@ class _ClockInScreenState extends State<ClockInScreen> {
                 // Calculate break and work time from hours
                 final totalWorkHours = attendance.totalWorkHours ?? 0.0;
                 final totalBreakHours = attendance.totalBreakHours ?? 0.0;
-                _totalBreakMinutes =
-                    totalBreakHours * 60; // completed breaks only
-                breakTime = _formatMinutes(_totalBreakMinutes);
+
+                // Only update _totalBreakMinutes if break timer is NOT running
+                // (otherwise we lose the live break time calculation)
+                if (_breakTimer == null) {
+                  _totalBreakMinutes = totalBreakHours * 60;
+                  breakTime = _formatMinutes(_totalBreakMinutes);
+                }
+
                 AppLogger.debug(
                   'ATTENDANCE_APPLY loaded id=${attendance.id} isOnBreak=${attendance.isOnBreak} totalBreakHours=${totalBreakHours.toStringAsFixed(4)}h totalBreakMinutes=${_totalBreakMinutes.toStringAsFixed(2)}m totalWorkHours=${totalWorkHours.toStringAsFixed(4)}h activeBreakStart=${attendance.activeBreakStart}',
                 );
@@ -666,7 +762,9 @@ class _ClockInScreenState extends State<ClockInScreen> {
                 // Start or stop break timer based on current break status only for today
                 if (isToday && isOnBreak) {
                   // Resume break timer from server's active break start time if available
-                  if (attendance.activeBreakStart != null) {
+                  // Only set _breakStartDateTime if not already set (preserve existing)
+                  if (_breakStartDateTime == null &&
+                      attendance.activeBreakStart != null) {
                     _breakStartDateTime = DateTime.parse(
                       attendance.activeBreakStart!,
                     ).toLocal();
@@ -707,8 +805,11 @@ class _ClockInScreenState extends State<ClockInScreen> {
       },
       child: BlocBuilder<AttendanceBloc, AttendanceState>(
         builder: (context, state) {
-          // Show loading indicator
-          if (state is AttendanceLoading && isLoading) {
+          // Show loading indicator while:
+          // 1. Initial state (no data requested yet)
+          // 2. Loading state AND still waiting for data
+          // 3. Data loaded but local state not yet initialized (isLoading is still true)
+          if (state is AttendanceInitial || isLoading) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
@@ -722,26 +823,28 @@ class _ClockInScreenState extends State<ClockInScreen> {
 
   Widget _buildMainContent() {
     // Convert activities from API to ActivityItem widgets and reverse to show newest first
+    // Convert activities from API to ActivityItem widgets and reverse to show newest first
     final activityItems = activities
         .map((activity) {
-          IconData icon;
+          IconData? icon;
+          String? svgPath;
           String action = activity['action'] ?? '';
 
           switch (action) {
             case 'check_in':
-              icon = Icons.login;
+              svgPath = AppIcons.clockInTime;
               action = 'Check In';
               break;
             case 'check_out':
-              icon = Icons.logout;
+              svgPath = AppIcons.clockOutTime;
               action = 'Check Out';
               break;
             case 'break_start':
-              icon = Icons.coffee;
+              svgPath = AppIcons.breakTime;
               action = 'Break Start';
               break;
             case 'break_end':
-              icon = Icons.coffee_outlined;
+              svgPath = AppIcons.breakTime; // Re-using break icon for now
               action = 'Break End';
               break;
             default:
@@ -758,6 +861,7 @@ class _ClockInScreenState extends State<ClockInScreen> {
             date:
                 '${timestamp.month.toString().padLeft(2, '0')}/${timestamp.day.toString().padLeft(2, '0')}/${timestamp.year}',
             icon: icon,
+            svgPath: svgPath,
           );
         })
         .toList()
@@ -862,7 +966,7 @@ class _ClockInScreenState extends State<ClockInScreen> {
                                       title: 'Clock In',
                                       time: clockInTime,
                                       subtitle: 'Mobile App',
-                                      icon: Icons.login,
+                                      svgPath: AppIcons.clockInTime,
                                       iconColor: AppColors.primary,
                                       compact: false,
                                       scale: scale,
@@ -877,7 +981,7 @@ class _ClockInScreenState extends State<ClockInScreen> {
                                       title: 'Clock Out',
                                       time: clockOutTime,
                                       subtitle: 'Mobile App',
-                                      icon: Icons.logout,
+                                      svgPath: AppIcons.clockOutTime,
                                       iconColor: AppColors.textSecondary,
                                       compact: false,
                                       scale: scale,
@@ -896,7 +1000,7 @@ class _ClockInScreenState extends State<ClockInScreen> {
                                       title: 'Work Time',
                                       time: workTime,
                                       subtitle: 'Avg 8 hours',
-                                      icon: Icons.access_time,
+                                      svgPath: AppIcons.workTime,
                                       iconColor: AppColors.accent,
                                       compact: false,
                                       scale: scale,
@@ -911,7 +1015,7 @@ class _ClockInScreenState extends State<ClockInScreen> {
                                       title: 'Break Time',
                                       time: breakTime,
                                       subtitle: 'Avg 1hr 20 mins',
-                                      icon: Icons.coffee,
+                                      svgPath: AppIcons.breakTime,
                                       iconColor: AppColors.warning,
                                       compact: false,
                                       scale: scale,
@@ -1003,15 +1107,25 @@ class _ClockInScreenState extends State<ClockInScreen> {
               ),
             ),
             // Fixed slider at bottom - always visible above navbar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: ClockInButton(
-                isClockedIn: isClockedIn,
-                isOnBreak: isOnBreak,
-                onToggle: _toggleClockIn,
-                onBreak: isClockedIn ? _handleBreak : null,
-                bottomMargin: 0,
-              ),
+            Builder(
+              builder: (context) {
+                final isToday =
+                    selectedDate.year == DateTime.now().year &&
+                    selectedDate.month == DateTime.now().month &&
+                    selectedDate.day == DateTime.now().day;
+
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: ClockInButton(
+                    isClockedIn: isClockedIn,
+                    isOnBreak: isOnBreak,
+                    enabled: isToday,
+                    onToggle: _toggleClockIn,
+                    onBreak: isClockedIn ? _handleBreak : null,
+                    bottomMargin: 0,
+                  ),
+                );
+              },
             ),
           ],
         ),

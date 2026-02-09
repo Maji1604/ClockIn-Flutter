@@ -4,6 +4,7 @@ import 'attendance_event.dart';
 import 'attendance_state.dart';
 
 import '../../../../core/utils/app_logger.dart';
+import '../../../../core/utils/error_formatter.dart';
 
 class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
   final AttendanceRepository attendanceRepository;
@@ -51,7 +52,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
       AppLogger.debug('Error type: ${e.runtimeType}');
       AppLogger.debug('Error message: $e');
       AppLogger.debug('Stack trace: $stackTrace');
-      emit(AttendanceError(e.toString()));
+      emit(AttendanceError(ErrorFormatter.format(e)));
     }
   }
 
@@ -84,17 +85,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
     } catch (e) {
       AppLogger.info('=== BLOC CLOCK-IN ERROR: ${e.runtimeType} ===');
 
-      // Extract clean error message
-      String errorMessage = e.toString();
-      if (errorMessage.startsWith('Exception: ')) {
-        errorMessage = errorMessage.substring('Exception: '.length);
-      }
-      // Remove nested "Exception: " prefixes
-      while (errorMessage.contains('Exception: ')) {
-        errorMessage = errorMessage.replaceAll('Exception: ', '');
-      }
-
-      emit(AttendanceError(errorMessage));
+      emit(AttendanceError(ErrorFormatter.format(e)));
 
       // Reload attendance data to sync UI state with backend
       AppLogger.debug('Reloading attendance data after error...');
@@ -142,17 +133,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
     } catch (e) {
       AppLogger.info('=== BLOC CLOCK-OUT ERROR: ${e.runtimeType} ===');
 
-      // Extract clean error message
-      String errorMessage = e.toString();
-      if (errorMessage.startsWith('Exception: ')) {
-        errorMessage = errorMessage.substring('Exception: '.length);
-      }
-      // Remove nested "Exception: " prefixes
-      while (errorMessage.contains('Exception: ')) {
-        errorMessage = errorMessage.replaceAll('Exception: ', '');
-      }
-
-      emit(AttendanceError(errorMessage));
+      emit(AttendanceError(ErrorFormatter.format(e)));
 
       // Reload attendance data to sync UI state with backend
       AppLogger.debug('Reloading attendance data after error...');
@@ -191,14 +172,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
         ),
       );
     } catch (e) {
-      String errorMessage = e.toString();
-      if (errorMessage.startsWith('Exception: ')) {
-        errorMessage = errorMessage.substring('Exception: '.length);
-      }
-      while (errorMessage.contains('Exception: ')) {
-        errorMessage = errorMessage.replaceAll('Exception: ', '');
-      }
-      emit(AttendanceError(errorMessage));
+      emit(AttendanceError(ErrorFormatter.format(e)));
       add(
         LoadTodayAttendance(
           token: event.token,
@@ -234,14 +208,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
         ),
       );
     } catch (e) {
-      String errorMessage = e.toString();
-      if (errorMessage.startsWith('Exception: ')) {
-        errorMessage = errorMessage.substring('Exception: '.length);
-      }
-      while (errorMessage.contains('Exception: ')) {
-        errorMessage = errorMessage.replaceAll('Exception: ', '');
-      }
-      emit(AttendanceError(errorMessage));
+      emit(AttendanceError(ErrorFormatter.format(e)));
       // Keep attendance as-is on error; still refresh activities for visibility
       add(
         LoadActivities(
@@ -290,14 +257,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
         );
       }
     } catch (e) {
-      String errorMessage = e.toString();
-      if (errorMessage.startsWith('Exception: ')) {
-        errorMessage = errorMessage.substring('Exception: '.length);
-      }
-      while (errorMessage.contains('Exception: ')) {
-        errorMessage = errorMessage.replaceAll('Exception: ', '');
-      }
-      emit(AttendanceError(errorMessage));
+      emit(AttendanceError(ErrorFormatter.format(e)));
     }
   }
 }

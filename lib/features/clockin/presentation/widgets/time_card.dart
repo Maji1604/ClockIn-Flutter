@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../../core/core.dart';
+import '../../../../shared/widgets/app_svg_icon.dart';
 
 class TimeCard extends StatelessWidget {
   final String title;
   final String time;
   final String subtitle;
-  final IconData icon;
+  final IconData? icon;
+  final String? svgPath;
   final Color iconColor;
   final VoidCallback? onTap;
   final double scale;
@@ -32,17 +34,18 @@ class TimeCard extends StatelessWidget {
     required this.title,
     required this.time,
     required this.subtitle,
-    required this.icon,
+    this.icon,
+    this.svgPath,
     required this.iconColor,
     this.onTap,
     this.scale = 1.0,
     this.compact = false,
     this.borderRadius = 14,
     this.iconContainerRadius = 8,
-    this.iconSizeNormal = 18,
-    this.iconSizeCompact = 16,
-    this.containerSizeNormal = 30,
-    this.containerSizeCompact = 26,
+    this.iconSizeNormal = 32,
+    this.iconSizeCompact = 24,
+    this.containerSizeNormal = 52,
+    this.containerSizeCompact = 40,
     this.horizontalPadding = 12,
     this.verticalPaddingNormal = 10,
     this.verticalPaddingCompact = 6,
@@ -53,7 +56,10 @@ class TimeCard extends StatelessWidget {
     this.timeFontSizeCompact = 16,
     this.subtitleFontSizeNormal = 10,
     this.subtitleFontSizeCompact = 9,
-  });
+  }) : assert(
+         icon != null || svgPath != null,
+         'Either icon or svgPath must be provided',
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -97,11 +103,18 @@ class TimeCard extends StatelessWidget {
                   alignment: Alignment.center,
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Icon(
-                      icon,
-                      color: iconColor,
-                      size: iconSize.toDouble(),
-                    ),
+                    child: svgPath != null
+                        ? AppSvgIcon(
+                            svgPath!,
+                            width: iconSize.toDouble(),
+                            height: iconSize.toDouble(),
+                            color: iconColor,
+                          )
+                        : Icon(
+                            icon,
+                            color: iconColor,
+                            size: iconSize.toDouble(),
+                          ),
                   ),
                 ),
                 SizedBox(width: spacingBetweenIconAndTitle * scale),

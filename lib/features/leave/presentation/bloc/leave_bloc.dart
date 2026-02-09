@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/repositories/leave_repository_impl.dart';
 import 'leave_event.dart';
+import '../../../../core/utils/error_formatter.dart';
 
 export 'leave_event.dart';
 
@@ -33,7 +34,7 @@ class LeaveBloc extends Bloc<LeaveEvent, LeaveState> {
       );
       emit(LeaveSubmitSuccess(leave: leave));
     } catch (e) {
-      emit(LeaveError(message: e.toString()));
+      emit(LeaveError(message: ErrorFormatter.format(e)));
     }
   }
 
@@ -49,7 +50,7 @@ class LeaveBloc extends Bloc<LeaveEvent, LeaveState> {
       );
       emit(LeavesLoadSuccess(leaves: leaves));
     } catch (e) {
-      emit(LeaveError(message: e.toString()));
+      emit(LeaveError(message: ErrorFormatter.format(e)));
     }
   }
 
@@ -62,7 +63,7 @@ class LeaveBloc extends Bloc<LeaveEvent, LeaveState> {
       final leaves = await repository.getPendingLeaves(event.token);
       emit(LeavesLoadSuccess(leaves: leaves));
     } catch (e) {
-      emit(LeaveError(message: e.toString()));
+      emit(LeaveError(message: ErrorFormatter.format(e)));
     }
   }
 
@@ -79,7 +80,7 @@ class LeaveBloc extends Bloc<LeaveEvent, LeaveState> {
       );
       emit(LeavesLoadSuccess(leaves: leaves));
     } catch (e) {
-      emit(LeaveError(message: e.toString()));
+      emit(LeaveError(message: ErrorFormatter.format(e)));
     }
   }
 
@@ -102,7 +103,7 @@ class LeaveBloc extends Bloc<LeaveEvent, LeaveState> {
         ),
       );
     } catch (e) {
-      emit(LeaveError(message: e.toString()));
+      emit(LeaveError(message: ErrorFormatter.format(e)));
     }
   }
 
@@ -125,7 +126,7 @@ class LeaveBloc extends Bloc<LeaveEvent, LeaveState> {
         ),
       );
     } catch (e) {
-      emit(LeaveError(message: e.toString()));
+      emit(LeaveError(message: ErrorFormatter.format(e)));
     }
   }
 }

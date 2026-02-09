@@ -21,6 +21,7 @@ class ClockInButton extends StatefulWidget {
   final String breakLabel;
   final Color? breakColor;
   final TextStyle? breakTextStyle;
+  final bool enabled; // Added enabled field
 
   const ClockInButton({
     super.key,
@@ -28,6 +29,7 @@ class ClockInButton extends StatefulWidget {
     required this.isOnBreak,
     required this.onToggle,
     this.onBreak,
+    this.enabled = true, // Added enabled parameter with default true
     this.trackHeight = 56,
     this.thumbSize = 48,
     this.horizontalInset = 4,
@@ -102,81 +104,86 @@ class _ClockInButtonState extends State<ClockInButton>
 
     // Swipe track widget extracted for reuse when break button visible.
     Widget buildSwipeTrack(BuildContext context) {
-      return Container(
-        height: widget.trackHeight,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isClockedIn
-                ? [AppColors.errorLight, AppColors.error]
-                : [
-                    AppColors.primary.withValues(alpha: 0.95),
-                    AppColors.primary,
-                  ],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
+      return Opacity(
+        opacity: widget.enabled ? 1.0 : 0.5,
+        child: Container(
+          height: widget.trackHeight,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isClockedIn
+                  ? [AppColors.errorLight, AppColors.error]
+                  : [
+                      AppColors.primary.withValues(alpha: 0.95),
+                      AppColors.primary,
+                    ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: BorderRadius.circular(widget.borderRadius),
           ),
-          borderRadius: BorderRadius.circular(widget.borderRadius),
-        ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final usableWidth =
-                constraints.maxWidth -
-                (widget.horizontalInset * 2) -
-                widget.thumbSize;
-            final dx = widget.horizontalInset + _dragPosition * usableWidth;
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final usableWidth =
+                  constraints.maxWidth -
+                  (widget.horizontalInset * 2) -
+                  widget.thumbSize;
+              final dx = widget.horizontalInset + _dragPosition * usableWidth;
 
-            return Stack(
-              alignment: Alignment.centerLeft,
-              children: [
-                // Center text
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: Center(
-                      child: AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 150),
-                        style: TextStyle(
-                          color: AppColors.textOnPrimary,
-                          fontSize: widget.labelFontSize,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0,
-                          height: 1.1,
-                        ),
-                        child: Text(
-                          label,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.fade,
-                          softWrap: false,
+              return Stack(
+                alignment: Alignment.centerLeft,
+                children: [
+                  // Center text
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Center(
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 150),
+                          style: TextStyle(
+                            color: AppColors.textOnPrimary,
+                            fontSize: widget.labelFontSize,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0,
+                            height: 1.1,
+                          ),
+                          child: Text(
+                            label,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.fade,
+                            softWrap: false,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                // Progress highlight
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(widget.borderRadius),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: FractionallySizedBox(
-                          widthFactor: (0.12 + _dragPosition * 0.88).clamp(
-                            0.12,
-                            1.0,
-                          ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppColors.textOnPrimary.withValues(
-                                    alpha: 0.25,
-                                  ),
-                                  AppColors.textOnPrimary.withValues(
-                                    alpha: 0.05,
-                                  ),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
+                  // Progress highlight
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                          widget.borderRadius,
+                        ),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: FractionallySizedBox(
+                            widthFactor: (0.12 + _dragPosition * 0.88).clamp(
+                              0.12,
+                              1.0,
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppColors.textOnPrimary.withValues(
+                                      alpha: 0.25,
+                                    ),
+                                    AppColors.textOnPrimary.withValues(
+                                      alpha: 0.05,
+                                    ),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
                               ),
                             ),
                           ),
@@ -184,60 +191,62 @@ class _ClockInButtonState extends State<ClockInButton>
                       ),
                     ),
                   ),
-                ),
-                // Draggable thumb
-                Positioned(
-                  left: dx,
-                  top: (widget.trackHeight - widget.thumbSize) / 2,
-                  child: GestureDetector(
-                    onHorizontalDragStart: (_) =>
-                        setState(() => _isDragging = true),
-                    onHorizontalDragUpdate: (details) {
-                      setState(() {
-                        _dragPosition =
-                            (_dragPosition + details.delta.dx / usableWidth)
-                                .clamp(0.0, 1.0);
-                      });
-                    },
-                    onHorizontalDragEnd: (_) {
-                      setState(() => _isDragging = false);
-                      _handleDragEnd();
-                    },
-                    child: AnimatedScale(
-                      scale: _isDragging ? 1.05 : 1.0,
-                      duration: const Duration(milliseconds: 120),
-                      child: Container(
-                        width: widget.thumbSize,
-                        height: widget.thumbSize,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(
-                            widget.thumbBorderRadius,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.textPrimary.withValues(
-                                alpha: 0.10,
-                              ),
-                              blurRadius: 6,
-                              offset: const Offset(0, 3),
+                  // Draggable thumb
+                  Positioned(
+                    left: dx,
+                    top: (widget.trackHeight - widget.thumbSize) / 2,
+                    child: GestureDetector(
+                      onHorizontalDragStart: widget.enabled
+                          ? (_) => setState(() => _isDragging = true)
+                          : null,
+                      onHorizontalDragUpdate: (details) {
+                        if (!widget.enabled) return;
+                        setState(() {
+                          _dragPosition =
+                              (_dragPosition + details.delta.dx / usableWidth)
+                                  .clamp(0.0, 1.0);
+                        });
+                      },
+                      onHorizontalDragEnd: (_) {
+                        setState(() => _isDragging = false);
+                        _handleDragEnd();
+                      },
+                      child: AnimatedScale(
+                        scale: _isDragging ? 1.05 : 1.0,
+                        duration: const Duration(milliseconds: 120),
+                        child: Container(
+                          width: widget.thumbSize,
+                          height: widget.thumbSize,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(
+                              widget.thumbBorderRadius,
                             ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Icon(
-                            thumbIcon,
-                            size: widget.iconSize,
-                            color: AppColors.textSecondary,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.textPrimary.withValues(
+                                  alpha: 0.10,
+                                ),
+                                blurRadius: 6,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Icon(
+                              thumbIcon,
+                              size: widget.iconSize,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       );
     }
@@ -257,18 +266,26 @@ class _ClockInButtonState extends State<ClockInButton>
                 Expanded(
                   child: _RectBreakButton(
                     label: 'Take Break',
-                    enabled: !widget.isOnBreak,
+                    enabled:
+                        widget.enabled &&
+                        !widget.isOnBreak, // Check widget.enabled
                     primary: true,
-                    onTap: !widget.isOnBreak ? widget.onBreak! : null,
+                    onTap: (widget.enabled && !widget.isOnBreak)
+                        ? widget.onBreak!
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: _RectBreakButton(
                     label: 'End Break',
-                    enabled: widget.isOnBreak,
+                    enabled:
+                        widget.enabled &&
+                        widget.isOnBreak, // Check widget.enabled
                     primary: false,
-                    onTap: widget.isOnBreak ? widget.onBreak! : null,
+                    onTap: (widget.enabled && widget.isOnBreak)
+                        ? widget.onBreak!
+                        : null,
                   ),
                 ),
               ],

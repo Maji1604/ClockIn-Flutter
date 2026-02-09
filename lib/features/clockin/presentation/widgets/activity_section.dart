@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
 import '../../../../core/core.dart';
+import '../../../../shared/widgets/app_svg_icon.dart';
 
 class ActivityItem {
   final String action;
   final String time;
   final String date;
-  final IconData icon;
+  final IconData? icon;
+  final String? svgPath;
 
   const ActivityItem({
     required this.action,
     required this.time,
     required this.date,
-    required this.icon,
-  });
+    this.icon,
+    this.svgPath,
+  }) : assert(
+         icon != null || svgPath != null,
+         'Either icon or svgPath must be provided',
+       );
 }
 
 class ActivitySection extends StatelessWidget {
@@ -103,11 +109,18 @@ class ActivitySection extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: FittedBox(
-            child: Icon(
-              item.icon,
-              size: scaledIconSize,
-              color: AppColors.primary,
-            ),
+            child: item.svgPath != null
+                ? AppSvgIcon(
+                    item.svgPath!,
+                    width: scaledIconSize,
+                    height: scaledIconSize,
+                    color: AppColors.primary,
+                  )
+                : Icon(
+                    item.icon,
+                    size: scaledIconSize,
+                    color: AppColors.primary,
+                  ),
           ),
         ),
         SizedBox(width: horizontalSpacing * scale),

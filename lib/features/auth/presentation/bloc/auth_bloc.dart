@@ -4,6 +4,7 @@ import 'auth_event.dart';
 import 'auth_state.dart';
 
 import '../../../../core/utils/app_logger.dart';
+import '../../../../core/utils/error_formatter.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository authRepository;
@@ -38,7 +39,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       AppLogger.debug('Error: $e');
       AppLogger.debug('Stack trace: $stackTrace');
       AppLogger.debug('AUTH BLOC: Emitting AuthError...');
-      emit(AuthError(e.toString()));
+      emit(AuthError(ErrorFormatter.format(e)));
     }
   }
 
