@@ -82,7 +82,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
     String? emailError;
     String? passwordError;
 
-    String _generateRandomPassword() {
+    String generateRandomPassword() {
       const length = 12;
       const chars =
           'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#\$%^&*';
@@ -93,7 +93,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
       ).join();
     }
 
-    String? _validatePassword(String? value) {
+    String? validatePassword(String? value) {
       if (value == null || value.isEmpty) {
         return 'Password is required';
       }
@@ -315,7 +315,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                         IconButton(
                           icon: const Icon(Icons.refresh, size: 20),
                           onPressed: () {
-                            final newPassword = _generateRandomPassword();
+                            final newPassword = generateRandomPassword();
                             passwordController.text = newPassword;
                             setState(() {
                               isGeneratedPassword = true;
@@ -424,7 +424,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
 
                                 // Validate password
                                 final passwordValidationError =
-                                    _validatePassword(passwordController.text);
+                                    validatePassword(passwordController.text);
                                 if (passwordValidationError != null) {
                                   setState(() {
                                     passwordError = passwordValidationError;
@@ -720,7 +720,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
     bool obscurePassword = true;
     bool resetPassword = false;
 
-    String _generateRandomPassword() {
+    String generateRandomPassword() {
       const length = 12;
       const chars =
           'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#\$%^&*';
@@ -852,7 +852,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                           IconButton(
                             icon: const Icon(Icons.refresh, size: 20),
                             onPressed: () {
-                              final newPassword = _generateRandomPassword();
+                              final newPassword = generateRandomPassword();
                               passwordController.text = newPassword;
                               setState(() {
                                 obscurePassword = false;

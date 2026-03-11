@@ -4,7 +4,6 @@ import '../../../../core/core.dart';
 import '../../../../core/dependency_injection/service_locator.dart';
 import '../bloc/leave_bloc.dart';
 
-import '../../../../core/utils/app_logger.dart';
 import '../../../../shared/widgets/outlined_label_text_field.dart';
 
 class LeavePage extends StatefulWidget {
@@ -359,7 +358,7 @@ class _LeavePageState extends State<LeavePage> {
                         const SizedBox(height: 16),
                         // Leave Type Dropdown
                         DropdownButtonFormField<String>(
-                          value: _leaveType,
+                          initialValue: _leaveType,
                           decoration: InputDecoration(
                             labelText: 'Leave Type',
                             border: OutlineInputBorder(
@@ -394,7 +393,7 @@ class _LeavePageState extends State<LeavePage> {
                         const SizedBox(height: 16),
                         // Leave Period Dropdown
                         DropdownButtonFormField<String>(
-                          value: _leavePeriod,
+                          initialValue: _leavePeriod,
                           decoration: InputDecoration(
                             labelText: 'Leave Period',
                             border: OutlineInputBorder(

@@ -272,13 +272,12 @@ class _TopSnackBarContainer extends StatelessWidget {
   final VoidCallback onDismiss;
 
   const _TopSnackBarContainer({
-    Key? key,
     required this.message,
     required this.backgroundColor,
     required this.textColor,
     required this.onDismiss,
     this.action,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

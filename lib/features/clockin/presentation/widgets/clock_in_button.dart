@@ -323,7 +323,7 @@ class _RectBreakButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final Color activeColor = primary ? AppColors.accent : AppColors.error;
-    final bgColor = enabled ? activeColor : theme.colorScheme.surfaceVariant;
+    final bgColor = enabled ? activeColor : theme.colorScheme.surfaceContainerHighest;
     final fgColor = enabled
         ? AppColors.textOnPrimary
         : AppColors.textSecondary.withValues(alpha: 0.6);

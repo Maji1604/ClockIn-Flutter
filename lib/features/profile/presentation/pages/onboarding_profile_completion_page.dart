@@ -12,12 +12,12 @@ class OnboardingProfileCompletionPage extends StatefulWidget {
   final bool hasAddress;
 
   const OnboardingProfileCompletionPage({
-    Key? key,
+    super.key,
     required this.token,
     required this.empId,
     required this.hasMobileNumber,
     required this.hasAddress,
-  }) : super(key: key);
+  });
 
   @override
   State<OnboardingProfileCompletionPage> createState() =>

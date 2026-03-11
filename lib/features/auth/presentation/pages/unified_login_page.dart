@@ -10,7 +10,6 @@ import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import '../../data/models/user_model.dart';
 
-import '../../../../core/utils/app_logger.dart';
 
 class UnifiedLoginPage extends StatefulWidget {
   const UnifiedLoginPage({super.key});
@@ -162,7 +161,7 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
     }
 
     AppLogger.debug(
-      'ONBOARDING: Using token passed from login: ${token != null ? "present" : "null"}',
+      'ONBOARDING: Using token passed from login: ${"present"}',
     );
 
     Navigator.of(context).pushAndRemoveUntil(

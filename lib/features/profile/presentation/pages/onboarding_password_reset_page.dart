@@ -8,8 +8,7 @@ import '../../../../core/utils/password_hasher.dart';
 class OnboardingPasswordResetPage extends StatefulWidget {
   final String token;
 
-  const OnboardingPasswordResetPage({Key? key, required this.token})
-    : super(key: key);
+  const OnboardingPasswordResetPage({super.key, required this.token});
 
   @override
   State<OnboardingPasswordResetPage> createState() =>
